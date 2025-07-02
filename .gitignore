@@ -1,8 +1,4 @@
-tt.*
-.tests
-doc/tags
-debug
-.repro
-foo.*
-*.log
-data
+.config/fish/conf.d/firebase.fish
+.config/fish/conf.d/akka.fish
+.config/fish/conf.d/scala.fish
+.config/fish/conf.d/volta.fish
