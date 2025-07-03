@@ -1,7 +1,7 @@
 # Ajout Homebrew au PATH
 set -gx PATH /opt/homebrew/bin $PATH
 
-set fish_greeting "Happy Hacking, $USER! 🐟"
+set fish_greeting "Happy Fishing, $USER! 🐟"
 
 #set the editor to use nvim
 set --export --global EDITOR nvim
@@ -44,6 +44,7 @@ set -g theme_project_dir_length 1
 set -g theme_newline_cursor yes
 set -g theme_newline_prompt '$ '
 
-starship init fish | source
 set -gx STARSHIP_CONFIG $HOME/.config/starship/starship.toml
 set -gx CZ_PATH cz-conventional-changelog
+
+starship init fish | source
