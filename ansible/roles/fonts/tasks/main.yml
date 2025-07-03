@@ -1,0 +1,8 @@
+
+- name: Install Nerd Fonts if not already present
+  shell: |
+    if ! ls ~/Library/Fonts | grep -q NerdFont; then
+      brew install --cask font-jetbrains-mono-nerd-font
+    fi
+  args:
+    executable: /bin/bash

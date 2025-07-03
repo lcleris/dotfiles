@@ -1,0 +1,17 @@
+
+- name: Install wezterm via Homebrew
+  homebrew:
+    name: wezterm
+    state: present
+
+- name: Remove existing wezterm config
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.config/wezterm"
+    state: absent
+
+- name: Symlink wezterm config
+  file:
+    src: "{{ dotfiles_path }}/.config/wezterm"
+    dest: "{{ lookup('env', 'HOME') }}/.config/wezterm"
+    state: link
+    force: true
