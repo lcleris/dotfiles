@@ -1,92 +1,13 @@
+
 - hosts: localhost
   connection: local
   vars:
     dotfiles_path: "{{ lookup('env', 'HOME') }}/dotfiles"
-    homebrew_packages:
-      - fish
-      - tmux
-      - starship
-      - wezterm
-      - chruby
-  tasks:
-    - name: Ensure Homebrew is installed
-      shell: |
-        if ! command -v brew >/dev/null 2>&1; then
-          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-        fi
-      args:
-        executable: /bin/bash
-
-    - name: Install Homebrew packages
-      homebrew:
-        name: "{{ item }}"
-        state: present
-      loop: "{{ homebrew_packages }}"
-
-    - name: Remove existing fish config
-      file:
-        path: "{{ lookup('env', 'HOME') }}/.config/fish"
-        state: absent
-
-    - name: Symlink fish config
-      file:
-        src: "{{ dotfiles_path }}/.config/fish"
-        dest: "{{ lookup('env', 'HOME') }}/.config/fish"
-        state: link
-        force: true
-
-    - name: Remove existing tmux config
-      file:
-        path: "{{ lookup('env', 'HOME') }}/.config/tmux"
-        state: absent
-
-    - name: Symlink tmux config
-      file:
-        src: "{{ dotfiles_path }}/.config/tmux"
-        dest: "{{ lookup('env', 'HOME') }}/.config/tmux"
-        state: link
-        force: true
-
-    - name: Remove existing wezterm config
-      file:
-        path: "{{ lookup('env', 'HOME') }}/.config/wezterm"
-        state: absent
-
-    - name: Symlink wezterm config
-      file:
-        src: "{{ dotfiles_path }}/.config/wezterm"
-        dest: "{{ lookup('env', 'HOME') }}/.config/wezterm"
-        state: link
-        force: true
-
-    - name: Remove existing nvim config
-      file:
-        path: "{{ lookup('env', 'HOME') }}/.config/nvim"
-        state: absent
-
-    - name: Symlink nvim config
-      file:
-        src: "{{ dotfiles_path }}/.config/nvim"
-        dest: "{{ lookup('env', 'HOME') }}/.config/nvim"
-        state: link
-        force: true
-
-    - name: Remove existing starship config
-      file:
-        path: "{{ lookup('env', 'HOME') }}/.config/starship.toml"
-        state: absent
-
-    - name: Symlink starship config
-      file:
-        src: "{{ dotfiles_path }}/.config/starship/starship.toml"
-        dest: "{{ lookup('env', 'HOME') }}/.config/starship/starship.toml"
-        state: link
-        force: true
-
-    - name: Install Nerd Fonts if not already present
-      shell: |
-        if ! ls ~/Library/Fonts | grep -q NerdFont; then
-          brew install --cask font-jetbrains-mono-nerd-font
-        fi
-      args:
-        executable: /bin/bash
+  roles:
+    - fish
+    - tmux
+    - wezterm
+    - nvim
+    - fonts
+    - starship
+    - omf

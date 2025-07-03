@@ -1,0 +1,30 @@
+
+- name: Install fish via Homebrew
+  homebrew:
+    name: fish
+    state: present
+
+- name: Remove existing fish config
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.config/fish"
+    state: absent
+
+- name: Symlink fish config
+  file:
+    src: "{{ dotfiles_path }}/.config/fish"
+    dest: "{{ lookup('env', 'HOME') }}/.config/fish"
+    state: link
+    force: true
+
+- name: Add fish to /etc/shells if missing
+  lineinfile:
+    path: /etc/shells
+    line: /opt/homebrew/bin/fish
+    state: present
+  become: true
+
+- name: Set fish as default shell
+  user:
+    name: "{{ lookup('env','USER') }}"
+    shell: /opt/homebrew/bin/fish
+  become: true

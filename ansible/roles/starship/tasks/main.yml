@@ -1,0 +1,12 @@
+
+- name: Remove existing starship config
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.config/starship"
+    state: absent
+
+- name: Symlink starship config
+  file:
+    src: "{{ dotfiles_path }}/.config/starship"
+    dest: "{{ lookup('env', 'HOME') }}/.config/starship"
+    state: link
+    force: true

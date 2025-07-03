@@ -1,0 +1,12 @@
+
+- name: Remove existing nvim config
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.config/nvim"
+    state: absent
+
+- name: Symlink nvim config
+  file:
+    src: "{{ dotfiles_path }}/.config/nvim"
+    dest: "{{ lookup('env', 'HOME') }}/.config/nvim"
+    state: link
+    force: true
