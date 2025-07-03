@@ -45,5 +45,5 @@ set -g theme_newline_cursor yes
 set -g theme_newline_prompt '$ '
 
 starship init fish | source
-set -gx STARSHIP_CONFIG $HOME/.config/starship/config.toml
 set -gx STARSHIP_CONFIG $HOME/.config/starship/starship.toml
+set -gx CZ_PATH cz-conventional-changelog
