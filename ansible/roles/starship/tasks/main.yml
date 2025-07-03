@@ -1,8 +1,7 @@
-
-- name: Remove existing starship config
+- name: Ensure starship config directory exists
   file:
     path: "{{ lookup('env', 'HOME') }}/.config/starship"
-    state: absent
+    state: directory
 
 - name: Symlink starship config
   file:
@@ -10,3 +9,9 @@
     dest: "{{ lookup('env', 'HOME') }}/.config/starship"
     state: link
     force: true
+
+- name: Ensure STARSHIP_CONFIG is set in config.fish
+  lineinfile:
+    path: "{{ lookup('env', 'HOME') }}/.config/fish/config.fish"
+    line: set -gx STARSHIP_CONFIG $HOME/.config/starship/starship.toml
+    state: present
