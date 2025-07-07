@@ -47,4 +47,7 @@ set -g theme_newline_prompt '$ '
 set -gx STARSHIP_CONFIG $HOME/.config/starship/starship.toml
 set -gx CZ_PATH cz-conventional-changelog
 
+# S'assure que chruby est bien chargé avant d'appeler
+functions -q chruby; and chruby ruby-3.3.0
+
 starship init fish | source
