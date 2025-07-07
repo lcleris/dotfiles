@@ -1,0 +1,11 @@
+- name: Install Zellij
+  homebrew:
+    name: zellij
+    state: present
+
+- name: Symlink Zellij config
+  file:
+    src: "{{ dotfiles_path }}/.config/zellij"
+    dest: "{{ lookup('env', 'HOME') }}/.config/zellij"
+    state: link
+    force: true
