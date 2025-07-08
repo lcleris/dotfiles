@@ -2,6 +2,12 @@
   connection: local
   vars:
     dotfiles_path: "{{ lookup('env', 'HOME') }}/dotfiles"
+  pre_tasks:
+    - name: Set OS type fact
+      ansible.builtin.set_fact:
+        is_macos: "{{ ansible_system == 'Darwin' }}"
+        is_linux: "{{ ansible_system == 'Linux' }}"
+
   roles:
     - fish
     - tmux
