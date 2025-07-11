@@ -1,0 +1,11 @@
+- name: Remove existing nushell config
+  file:
+    path: "{{ lookup('env', 'HOME') }}/.config/nushell"
+    state: absent
+
+- name: Symlink Nushell config
+  file:
+    src: "{{ dotfiles_path }}/.config/nushell"
+    dest: "{{ lookup('env', 'HOME') }}/.config/nushell"
+    state: link
+    force: true

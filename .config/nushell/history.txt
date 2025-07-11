@@ -1,0 +1,29 @@
+la
+c
+bat config.nu 
+as
+l
+v config.nu 
+l
+clear
+c
+cz
+v config.nu 
+v
+which nu 
+which node
+$env.PATH
+v config.nu 
+v env.nu 
+v
+v env.nu 
+which node 
+bat env.nu 
+v env.nu 
+clear
+v env.nu 
+v
+clear
+starship init nu 
+clear
+z
