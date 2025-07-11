@@ -10,8 +10,8 @@
     state: link
     force: true
 
-- name: Ensure STARSHIP_CONFIG is set in config.fish
+- name: Ensure STARSHIP_CONFIG is set in config.nu
   lineinfile:
-    path: "{{ lookup('env', 'HOME') }}/.config/fish/config.fish"
-    line: set -gx STARSHIP_CONFIG $HOME/.config/starship/starship.toml
+    path: "{{ lookup('env', 'HOME') }}/.config/nushell/config.nu"
+    line: let-env STARSHIP_CONFIG = $HOME/.config/starship/starship.toml
     state: present
