@@ -141,16 +141,20 @@ log_success "Main configuration files created"
 CURRENT_SHELL=$(echo $SHELL)
 if [ "$CURRENT_SHELL" != "/opt/homebrew/bin/nu" ]; then
     log_info "Current shell: $CURRENT_SHELL"
-    echo -e "${YELLOW}Would you like to set Nushell as your default shell? (y/n)${NC}"
-    read -r response
-    if [[ "$response" =~ ^[Yy]$ ]]; then
-        if chsh -s /opt/homebrew/bin/nu; then
-            log_success "Nushell set as default shell"
+    if [ -t 0 ]; then
+        echo -e "${YELLOW}Would you like to set Nushell as your default shell? (y/n)${NC}"
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            if chsh -s /opt/homebrew/bin/nu; then
+                log_success "Nushell set as default shell"
+            else
+                log_error "Failed to set Nushell as default shell"
+            fi
         else
-            log_error "Failed to set Nushell as default shell"
+            log_info "Skipping shell change"
         fi
     else
-        log_info "Skipping shell change"
+        log_info "Non-interactive environment detected. Skipping shell change."
     fi
 else
     log_success "Nushell is already the default shell"
