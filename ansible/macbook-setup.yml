@@ -8,3 +8,4 @@
     - { role: zellij, tags: ["zellij"] }
     - { role: nvim, tags: ["nvim"] }
     - { role: fonts, tags: ["fonts"] }
+    - { role: ghostty, tags: ["ghostty"] }
