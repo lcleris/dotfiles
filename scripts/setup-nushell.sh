@@ -53,7 +53,14 @@ log_info "Starting Nushell complete setup..."
 
 # Step 1: Install Nushell and dependencies
 log_info "Installing Nushell and dependencies via Homebrew..."
-brew install nushell zoxide carapace starship
+for package in nushell zoxide carapace starship; do
+    if ! brew ls --versions "$package" &> /dev/null; then
+        log_info "Installing $package..."
+        brew install "$package"
+    else
+        log_info "$package is already installed. Skipping."
+    fi
+done
 
 # Step 2: Create necessary directories
 log_info "Creating necessary directories..."
