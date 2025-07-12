@@ -1,19 +1,11 @@
 - hosts: localhost
   connection: local
   vars:
-    dotfiles_path: "{{ lookup('env', 'HOME') }}/dotfiles"
-  pre_tasks:
-    - name: Set OS type fact
-      ansible.builtin.set_fact:
-        is_macos: "{{ ansible_system == 'Darwin' }}"
-        is_linux: "{{ ansible_system == 'Linux' }}"
-
+    dotfiles_path: "{{ lookup('env', 'DOTFILES_PATH') | default(ansible_env.HOME + '/dotfiles', true) }}"
   roles:
-    - fish
-    - tmux
-    - wezterm
-    - nvim
-    - fonts
-    - starship
-    - omf
-    - zellij
+    - { role: starship, tags: ["starship"] }
+    - { role: nushell, tags: ["nushell"] }
+    - { role: zellij, tags: ["zellij"] }
+    - { role: nvim, tags: ["nvim"] }
+    - { role: fonts, tags: ["fonts"] }
+    - { role: ghostty, tags: ["ghostty"] }
