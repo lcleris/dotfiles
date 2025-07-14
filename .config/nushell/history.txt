@@ -27,3 +27,13 @@ clear
 starship init nu 
 clear
 z
+brew uninstall fish 
+rm -rf /opt/homebrew/etc/fish
+c
+brew install go
+z ios
+z masana front
+l
+select * 
+sql select from * 
+c
