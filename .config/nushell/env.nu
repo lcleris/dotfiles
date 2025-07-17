@@ -98,6 +98,10 @@ $env.PATH = ($env.PATH | prepend "/Users/loancleris/.local/bin")
 $env.PATH = ($env.PATH | prepend "/opt/homebrew/opt/ruby/bin")
 $env.PATH = ($env.PATH | uniq)
 $env.PATH = ($env.PATH | prepend '/Users/loancleris/.volta/bin')
+$env.PATH = ($env.PATH | prepend '/usr/local/bin')
+$env.PATH = ($env.PATH | str join (char esep))  
+$env.GPG_TTY = (tty { $env.TERM } | default 'dumb')
+
 
 # To load from a custom file you can use:
 # source ($nu.default-config-dir | path join 'custom.nu')

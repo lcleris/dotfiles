@@ -37,3 +37,107 @@ l
 select * 
 sql select from * 
 c
+gst
+git status 
+carapace
+gst
+zellij kill-session
+zellij attach triangular-iguanadon
+z masana front
+gsy
+gst
+zellij kill-all-session
+zellij kill-all-sessions
+zellij delete-all-sessions
+c
+gst
+c
+git add . 
+git cz
+git push origin 4883-jitsi-webview
+git pull origin 4883-jitsi-webview
+git pull origin 4883-jitsi-webview --no-rebase
+git log 
+c
+git push origin 4883-jitsi-webview
+c
+f
+d
+c
+carapace bat 
+rm -rf node_modules/ && npm i 
+rm -rf node_modules and npm i 
+fish
+c
+ansi Loan
+ansi gradient 
+ansi gradient 'test'
+grid 
+grid apps/
+c
+volta list 
+c
+go
+go environment
+go env 
+c
+git rebase -i 815136ceb18fc82105d6caa0e3d247c7415a38dc
+gst
+git diff libs/core/native/src/lib/screens/private/teleconsultation/MnTeleconsultationScreen.tsx
+git add .
+git cz 
+npm i 
+git add . 
+git cz
+rm -rf test
+git add . 
+git cz
+git push origin 4883-jitsi-webview
+c
+l
+c
+zellij setup --generate-completion bash<\n>zellij setup --generate-completion zsh<\n>zellij setup --generate-completion fish<\n>
+c 
+exit
+git add .
+git cz
+z ios
+pod install 
+z masana front
+gst
+git log
+git log 
+c
+gst
+git add . 
+git cz
+z dotfiles
+ansible-playground ansible/macbook-setup.yml --ask-become-pass
+ansible-playbook ansible/macbook-setup.yml --ask-become-pass
+c
+git add . 
+git cz
+git config --list --show-origin<\n>
+gpg --list-secret-keys<\n>
+z dotfiles
+z nushell
+l
+v env.nu 
+git config --list --show-origin<\n>
+git add . 
+git cz
+gpg
+git config --list --show-origin<\n>
+gpg --list-secret-keys<\n>
+z nushell 
+gpg --version
+starship init nu 
+gpg --verify 
+v env.nu 
+gpg --verify 
+gpg --version
+git add . 
+git cz
+git push origin 4883-jitsi-webview
+z dotfiles
+gst
