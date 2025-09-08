@@ -91,17 +91,42 @@ $env.NU_PLUGIN_DIRS = [
 # An alternate way to add entries to $env.PATH is to use the custom command `path add`
 # which is built into the nushell stdlib:
 # use std "path add"
+
+$env.GIT_OPTIONAL_LOCKS = "0"
+
+# Set up all PATH entries at once
 $env.PATH = ($env.PATH | split row (char esep))
 $env.PATH = ($env.PATH | prepend "/opt/homebrew/bin")
 $env.PATH = ($env.PATH | prepend "/run/current-system/sw/bin")
 $env.PATH = ($env.PATH | prepend "/Users/loancleris/.local/bin")
 $env.PATH = ($env.PATH | prepend "/opt/homebrew/opt/ruby/bin")
-$env.PATH = ($env.PATH | uniq)
 $env.PATH = ($env.PATH | prepend '/Users/loancleris/.volta/bin')
 $env.PATH = ($env.PATH | prepend '/usr/local/bin')
-$env.PATH = ($env.PATH | str join (char esep))  
+
+# SDKMAN
+$env.SDKMAN_DIR = $"($env.HOME)/.sdkman"
+
+# Set up environment variables
+$env.JAVA_HOME = $"($env.SDKMAN_DIR)/candidates/java/current"
+$env.ORG_GRADLE_JAVA_HOME = $"($env.SDKMAN_DIR)/candidates/gradle/current/bin/gradle"
 $env.GPG_TTY = (tty { $env.TERM } | default 'dumb')
 
+# Add SDKMAN candidates to PATH
+$env.PATH = ($env.PATH | append $"($env.SDKMAN_DIR)/candidates/gradle/current/bin")
+$env.PATH = ($env.PATH | append $"($env.SDKMAN_DIR)/candidates/java/current/bin")
+$env.PATH = ($env.PATH | append $"($env.SDKMAN_DIR)/candidates/sbt/current/bin")
+
+# Android SDK
+$env.ANDROID_HOME = $"($env.HOME)/Library/Android/sdk"
+$env.PATH = ($env.PATH | append $"($env.ANDROID_HOME)/emulator")
+$env.PATH = ($env.PATH | append $"($env.ANDROID_HOME)/tools")
+$env.PATH = ($env.PATH | append $"($env.ANDROID_HOME)/tools/bin")
+$env.PATH = ($env.PATH | append $"($env.ANDROID_HOME)/platform-tools")
+
+$env.AKKA_LICENSE_KEY = "REDACTED"
+
+# Clean up PATH and convert back to string
+$env.PATH = ($env.PATH | uniq | str join (char esep))
 
 # To load from a custom file you can use:
 # source ($nu.default-config-dir | path join 'custom.nu')
