@@ -891,6 +891,14 @@ def --env cx [arg] {
     ls -l
 }
 
+def gbr_safe [] {
+  git branch
+  | lines
+  | each {|b| $b | str trim }
+  | where {|name| (not ($name | str starts-with "*")) and ($name != "main") and ($name != "master")}
+  | each {|name| git branch -D $name}
+}
+
 alias l = ls --all
 alias c = clear
 alias ll = ls -l
@@ -905,14 +913,17 @@ def ff [] {
 }
 
 # Git
+alias gbr = gbr_safe
 alias gc = git commit -m
 alias gca = git commit -a -m
 alias gp = git push origin HEAD
+alias gpf = git push origin HEAD --force
 alias gpu = git pull origin
 alias gst = git status
 alias glog = git log --graph --topo-order --pretty='%w(100,0,6)%C(yellow)%h%C(bold)%C(black)%d %C(cyan)%ar %C(green)%an%n%C(bold)%C(white)%s %N' --abbrev-commit
 alias gdiff = git diff
 alias gco = git checkout
+alias gs = git switch
 alias gb = git branch
 alias gba = git branch -a
 alias gadd = git add
@@ -920,6 +931,9 @@ alias ga = git add -p
 alias gcoall = git checkout -- .
 alias gr = git remote
 alias gre = git reset
+
+# Masana Backend only (ToRemove when no longer at masana)
+alias masdocker = docker compose -f ~/Desktop/masana-backend/services/masana-webapi/docker-compose.local.yml
 
 source ~/.config/nushell/env.nu
 source ~/.zoxide.nu

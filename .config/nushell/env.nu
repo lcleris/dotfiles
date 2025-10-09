@@ -102,6 +102,7 @@ $env.PATH = ($env.PATH | prepend "/Users/loancleris/.local/bin")
 $env.PATH = ($env.PATH | prepend "/opt/homebrew/opt/ruby/bin")
 $env.PATH = ($env.PATH | prepend '/Users/loancleris/.volta/bin')
 $env.PATH = ($env.PATH | prepend '/usr/local/bin')
+$env.use_kitty_protocol = true
 
 # SDKMAN
 $env.SDKMAN_DIR = $"($env.HOME)/.sdkman"
