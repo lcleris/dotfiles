@@ -110,6 +110,12 @@ $env.SDKMAN_DIR = $"($env.HOME)/.sdkman"
 # Set up environment variables
 $env.JAVA_HOME = $"($env.SDKMAN_DIR)/candidates/java/current"
 $env.ORG_GRADLE_JAVA_HOME = $"($env.SDKMAN_DIR)/candidates/gradle/current/bin/gradle"
+$env.PATH = ($env.PATH | prepend '/usr/local/bin')
+$env.PATH = ($env.PATH | prepend "/opt/homebrew/share")
+$env.PATH = ($env.PATH | append '/opt/homebrew/share/dotnet')
+$env.PATH = ($env.PATH | append '~/.bun/bin')
+$env.PATH = ($env.PATH | str join (char esep))
+
 $env.GPG_TTY = (tty { $env.TERM } | default 'dumb')
 
 # Add SDKMAN candidates to PATH
