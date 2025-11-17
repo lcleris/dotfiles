@@ -1,13 +1,10 @@
 return {
-  {
-    "tpope/vim-fugitive",
-  },
-  {
-    "lewis6991/gitsigns.nvim",
-    config = function()
-      require("gitsigns").setup()
-      vim.keymap.set("n", "<leader>gp", ":Gitsigns preview_hunk<CR>", {})
-      vim.keymap.set("n", "<leader>gt", ":Gitsigns toggle_current_line_blame<CR>", {})
-    end,
+  "f-person/git-blame.nvim",
+  event = "VeryLazy",
+  opts = {
+    enabled = true,
+    message_template = "<author> • <summary> • <date> • <<sha>>",
+    date_format = "%d-%m-%Y",
+    virtual_text_column = 1,
   },
 }
