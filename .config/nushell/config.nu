@@ -904,6 +904,7 @@ alias c = clear
 alias ll = ls -l
 alias lt = eza --tree --level=2 --long --icons --git
 alias v = nvim
+alias vfind = v (fzf --preview="bat --color=always {}")
 alias hms = /nix/store/6kc5srg83nkyg21am089xx7pvq44kn2c-home-manager/bin/home-manager switch
 alias as = aerospace
 alias asr = atuin scripts run
@@ -911,6 +912,8 @@ alias asr = atuin scripts run
 def ff [] {
     aerospace list-windows --all | fzf --bind 'enter:execute(bash -c "aerospace focus --window-id {1}")+abort'
 }
+
+alias npm = npq-hero
 
 # Git
 alias gbr = gbr_safe
