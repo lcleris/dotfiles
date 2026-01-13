@@ -72,7 +72,7 @@
       # Source dotfiles env.nu
       source ~/dotfiles/.config/nushell/env.nu
     dest: "{{ lookup('env', 'HOME') }}/Library/Application Support/nushell/env.nu"
-    backup: yes
+    backup: true
 
 - name: Configure main config.nu to source dotfiles
   copy:
@@ -85,7 +85,7 @@
       # Source dotfiles config.nu
       source ~/dotfiles/.config/nushell/config.nu
     dest: "{{ lookup('env', 'HOME') }}/Library/Application Support/nushell/config.nu"
-    backup: yes
+    backup: true
 
 # Set Nushell as default shell
 - name: Check current shell
