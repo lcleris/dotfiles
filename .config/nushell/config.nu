@@ -944,7 +944,7 @@ source ~/.cache/carapace/init.nu
 use ~/.cache/starship/init.nu
 
 let ruby_ver = "3.4.0"
-let gem_home = ($nu.home-path | path join ".gem" "ruby" $ruby_ver)
+let gem_home = ($env.HOME | path join ".gem" "ruby" $ruby_ver)
 let gem_bin = ($gem_home | path join "bin")
 
 # Set GEM paths
