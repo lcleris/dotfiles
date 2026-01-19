@@ -3,7 +3,7 @@
 # version = "0.95.0"
 
 def create_left_prompt [] {
-    let dir = match (try { $env.PWD | path relative-to $nu.home-path }) {
+    let dir = match (try { $env.PWD | path relative-to $env.HOME }) {
         null => $env.PWD
         '' => '~'
         $relative_pwd => ([~ $relative_pwd] | path join)
@@ -142,7 +142,7 @@ mkdir ~/.cache/starship
 starship init nu | save -f ~/.cache/starship/init.nu
 zoxide init nushell | save -f ~/.zoxide.nu
 
-$env.STARSHIP_CONFIG = $"($nu.home-path)/.config/starship/starship.toml"
+$env.STARSHIP_CONFIG = $"($env.HOME)/.config/starship/starship.toml"
 $env.CARAPACE_BRIDGES = 'zsh,fish,bash,inshellisense' # optional
 mkdir ~/.cache/carapace
 carapace _carapace nushell | save --force ~/.cache/carapace/init.nu
