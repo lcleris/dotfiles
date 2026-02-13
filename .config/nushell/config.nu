@@ -940,7 +940,7 @@ alias masdocker = docker compose -f ~/Desktop/masana-backend/services/masana-web
 
 source ~/.config/nushell/env.nu
 source ~/.zoxide.nu
-source ~/.cache/carapace/init.nu
+source $"($nu.cache-dir)/carapace.nu"
 use ~/.cache/starship/init.nu
 
 let ruby_ver = "3.4.0"
