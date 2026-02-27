@@ -1,0 +1,27 @@
+- name: Check Homebrew is installed
+  command: which brew
+  register: brew_check
+  failed_when: false
+  changed_when: false
+
+- name: Fail if Homebrew is not found
+  fail:
+    msg: "Homebrew is not installed. Run bootstrap.sh first."
+  when: brew_check.rc != 0
+
+- name: Update Homebrew
+  homebrew:
+    update_homebrew: true
+
+- name: Install Homebrew formulas
+  homebrew:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ homebrew_packages }}"
+
+- name: Install Homebrew casks
+  homebrew_cask:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ homebrew_casks }}"
+  ignore_errors: true

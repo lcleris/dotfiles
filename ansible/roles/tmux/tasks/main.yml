@@ -1,0 +1,35 @@
+- name: Install tmux via Homebrew
+  homebrew:
+    name: tmux
+    state: present
+
+- name: Remove existing tmux config symlink
+  file:
+    path: "{{ home }}/.config/tmux"
+    state: absent
+
+- name: Symlink tmux config → dotfiles
+  file:
+    src: "{{ dotfiles_path }}/.config/tmux"
+    dest: "{{ home }}/.config/tmux"
+    state: link
+    force: true
+
+- name: Create TPM directory
+  file:
+    path: "{{ home }}/.tmux/plugins/tpm"
+    state: directory
+
+- name: Clone TPM if not present
+  git:
+    repo: "https://github.com/tmux-plugins/tpm"
+    dest: "{{ home }}/.tmux/plugins/tpm"
+    depth: 1
+    update: false
+  ignore_errors: true
+
+- name: Remind to install tmux plugins
+  debug:
+    msg: >
+      TPM is installed. Start tmux and press Prefix + I to install plugins.
+      Or run: ~/.tmux/plugins/tpm/bin/install_plugins

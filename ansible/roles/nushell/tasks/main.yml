@@ -1,99 +1,81 @@
-# Install Nushell and dependencies
-- name: Install Nushell via Homebrew
+- name: Install NuShell via Homebrew
   homebrew:
     name: nushell
     state: present
 
-- name: Install zoxide via Homebrew
+- name: Install shell dependencies
   homebrew:
-    name: zoxide
+    name: "{{ item }}"
     state: present
+  loop:
+    - zoxide
+    - carapace
+    - starship
 
-- name: Install carapace via Homebrew
-  homebrew:
-    name: carapace
-    state: present
-
-# Remove existing symlink if it exists
 - name: Remove existing nushell config symlink
   file:
-    path: "{{ lookup('env', 'HOME') }}/.config/nushell"
+    path: "{{ home }}/.config/nushell"
     state: absent
 
-# Create symlink to dotfiles
-- name: Symlink Nushell config
+- name: Symlink nushell config → dotfiles
   file:
     src: "{{ dotfiles_path }}/.config/nushell"
-    dest: "{{ lookup('env', 'HOME') }}/.config/nushell"
+    dest: "{{ home }}/.config/nushell"
     state: link
     force: true
 
-# Create necessary directories
-- name: Create starship cache directory
+- name: Create Application Support/nushell directory
   file:
-    path: "{{ lookup('env', 'HOME') }}/.cache/starship"
+    path: "{{ home }}/Library/Application Support/nushell"
     state: directory
 
-- name: Create carapace cache directory
-  file:
-    path: "{{ lookup('env', 'HOME') }}/.cache/carapace"
-    state: directory
-
-# Generate initialization files
-- name: Generate starship init file
-  shell: "/opt/homebrew/bin/starship init nu > {{ lookup('env', 'HOME') }}/.cache/starship/init.nu"
-  args:
-    creates: "{{ lookup('env', 'HOME') }}/.cache/starship/init.nu"
-
-- name: Generate zoxide init file
-  shell: "/opt/homebrew/bin/zoxide init nushell > {{ lookup('env', 'HOME') }}/.zoxide.nu"
-  args:
-    creates: "{{ lookup('env', 'HOME') }}/.zoxide.nu"
-
-- name: Generate carapace init file
-  shell: "/opt/homebrew/bin/carapace _carapace nushell > {{ lookup('env', 'HOME') }}/.cache/carapace/init.nu"
-  args:
-    creates: "{{ lookup('env', 'HOME') }}/.cache/carapace/init.nu"
-
-# Setup main Nushell configuration files
-- name: Ensure Nushell config directory exists
-  file:
-    path: "{{ lookup('env', 'HOME') }}/Library/Application Support/nushell"
-    state: directory
-
-- name: Configure main env.nu to source dotfiles
+- name: Create env.nu entry point (sources dotfiles)
   copy:
     content: |
-      # env.nu
-      #
-      # Installed by Ansible
-      #
-      # This file is loaded before config.nu and login.nu
-      # Source dotfiles env.nu
-      source ~/dotfiles/.config/nushell/env.nu
-    dest: "{{ lookup('env', 'HOME') }}/Library/Application Support/nushell/env.nu"
+      # env.nu — managed by Ansible
+      # Sources the real env.nu from dotfiles
+      source {{ dotfiles_path }}/.config/nushell/env.nu
+    dest: "{{ home }}/Library/Application Support/nushell/env.nu"
     backup: true
 
-- name: Configure main config.nu to source dotfiles
+- name: Create config.nu entry point (sources dotfiles)
   copy:
     content: |
-      # config.nu
-      #
-      # Installed by Ansible
-      #
-      # This file is loaded after env.nu and before login.nu
-      # Source dotfiles config.nu
-      source ~/dotfiles/.config/nushell/config.nu
-    dest: "{{ lookup('env', 'HOME') }}/Library/Application Support/nushell/config.nu"
+      # config.nu — managed by Ansible
+      # Sources the real config.nu from dotfiles
+      source {{ dotfiles_path }}/.config/nushell/config.nu
+    dest: "{{ home }}/Library/Application Support/nushell/config.nu"
     backup: true
 
-# Set Nushell as default shell
+- name: Create cache directories
+  file:
+    path: "{{ home }}/{{ item }}"
+    state: directory
+  loop:
+    - .cache/starship
+    - .cache/carapace
+
+- name: Generate starship init for nushell
+  shell: "{{ homebrew_bin }}/starship init nu > {{ home }}/.cache/starship/init.nu"
+  args:
+    creates: "{{ home }}/.cache/starship/init.nu"
+
+- name: Generate zoxide init for nushell
+  shell: "{{ homebrew_bin }}/zoxide init nushell > {{ home }}/.zoxide.nu"
+  args:
+    creates: "{{ home }}/.zoxide.nu"
+
+- name: Generate carapace init for nushell
+  shell: "{{ homebrew_bin }}/carapace _carapace nushell > {{ home }}/.cache/carapace/init.nu"
+  args:
+    creates: "{{ home }}/.cache/carapace/init.nu"
+
 - name: Check current shell
   shell: "echo $SHELL"
   register: current_shell
   changed_when: false
 
-- name: Set Nushell as default shell
-  shell: "chsh -s /opt/homebrew/bin/nu"
-  when: current_shell.stdout != "/opt/homebrew/bin/nu"
+- name: Set nushell as default shell
+  command: "chsh -s {{ homebrew_bin }}/nu"
+  when: current_shell.stdout != homebrew_bin + "/nu"
   become: false

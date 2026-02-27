@@ -1,0 +1,14 @@
+# ~/.mise.toml — géré par Ansible
+# Remplace : Volta, nvm, rbenv, sdkman, rustup
+# Doc : https://mise.jdx.dev
+
+[tools]
+{% for tool, version in mise_tools.items() %}
+{{ tool }} = "{{ version }}"
+{% endfor %}
+
+[settings]
+# Activer l'auto-install quand on entre dans un répertoire avec .mise.toml
+auto_install = true
+# Utiliser le shim plutôt que l'activation (plus compatible avec NuShell)
+experimental = true

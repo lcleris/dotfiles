@@ -1,0 +1,31 @@
+- name: Check mise is installed
+  command: "{{ homebrew_bin }}/mise --version"
+  register: mise_version
+  failed_when: false
+  changed_when: false
+
+- name: Install mise via Homebrew if missing
+  homebrew:
+    name: mise
+    state: present
+  when: mise_version.rc != 0
+
+- name: Create mise cache directory
+  file:
+    path: "{{ home }}/.cache/mise"
+    state: directory
+
+- name: Deploy .mise.toml from template
+  template:
+    src: mise.toml.j2
+    dest: "{{ home }}/.mise.toml"
+    backup: true
+
+- name: Install all tools via mise
+  command: "{{ homebrew_bin }}/mise install --yes"
+  args:
+    chdir: "{{ home }}"
+  environment:
+    HOME: "{{ home }}"
+    PATH: "{{ homebrew_bin }}:{{ ansible_env.PATH }}"
+  changed_when: true

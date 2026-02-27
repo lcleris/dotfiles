@@ -903,20 +903,15 @@ alias l = ls --all
 alias c = clear
 alias ll = ls -l
 alias lt = eza --tree --level=2 --long --icons --git
+alias lts = eza --tree --level=2 --icons --git
 alias v = nvim
 alias vfind = v (fzf --preview="bat --color=always {}")
-alias hms = /nix/store/6kc5srg83nkyg21am089xx7pvq44kn2c-home-manager/bin/home-manager switch
-alias as = aerospace
-alias asr = atuin scripts run
-
-def ff [] {
-    aerospace list-windows --all | fzf --bind 'enter:execute(bash -c "aerospace focus --window-id {1}")+abort'
-}
 
 alias npm = npq-hero
 
 # Git
 alias gbr = gbr_safe
+alias lg = lazygit
 alias gc = git commit -m
 alias gca = git commit -a -m
 alias gp = git push origin HEAD
@@ -925,7 +920,6 @@ alias gpu = git pull origin
 alias gst = git status
 alias glog = git log --graph --topo-order --pretty='%w(100,0,6)%C(yellow)%h%C(bold)%C(black)%d %C(cyan)%ar %C(green)%an%n%C(bold)%C(white)%s %N' --abbrev-commit
 alias gdiff = git diff
-alias gco = git checkout
 alias gs = git switch
 alias gb = git branch
 alias gba = git branch -a

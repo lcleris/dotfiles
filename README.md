@@ -1,27 +1,234 @@
 # 🛠️ Dotfiles — Loan CLERIS
 
-It's a personal setup for MasOS, designed to be easily managed and deployed using Ansible. This repository is not meant for public use, but it can serve as a reference for anyone looking to set up a similar environment.
+Personal macOS setup, fully managed and deployed via Ansible. Not intended for public use, but feel free to use it as a reference.
 
-## ✨ Features
+## ✨ Stack
 
-- 🔁 Managed with Ansible
-- 🐚 NuShell + Starship prompt
-- 🎨 Ghostty terminal with custom theme
-- 🧠 Neovim (LazyVim-based)
-- 🧱 Zellij terminal multiplexer
-- 🚀 Developer tools (Rust, Node.js, Java, Ruby…)
+| Tool | Role |
+|---|---|
+| [Ansible](https://www.ansible.com/) | Deployment & automation |
+| [MISE](https://mise.jdx.dev/) | Universal version manager (Node, Rust, Ruby, Java…) |
+| [NuShell](https://www.nushell.sh/) | Primary shell |
+| [Starship](https://starship.rs/) | Prompt |
+| [Ghostty](https://ghostty.org/) | Terminal emulator |
+| [Zellij](https://zellij.dev/) | Terminal multiplexer |
+| [tmux](https://github.com/tmux/tmux) | Terminal multiplexer (legacy / coexistence) |
+| [Neovim](https://neovim.io/) | Editor (LazyVim-based) |
+| [Carapace](https://github.com/rsteube/carapace-bin) | Multi-shell completion |
+| [Zoxide](https://github.com/ajeetdsouza/zoxide) | Smart directory navigation |
 
 ---
 
-## 📦 Prerequisites
+## 🚀 Fresh Install
 
-- Homebrew (macOS)
-- Git
-- Ansible `>= 2.14`
-- Fonts: [Nerd Fonts](https://www.nerdfonts.com/) (ex: `PlemolJP Console NF`)
-- Starship prompt
-- Node.js (via Volta or nvm)
-- `zoxide`, `fzf`, `ripgrep`, etc.
+One command to rule them all:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash
+```
+
+The script runs in order: Xcode CLI Tools → Homebrew → Git → MISE → Ansible → clone repo → **collect secrets** → run playbook → install language tools.
+
+### Options
+
+```bash
+# Install only specific components
+ANSIBLE_TAGS="nvim,nushell" bash ./scripts/bootstrap.sh
+
+# Dry-run — shows what would change, modifies nothing
+CHECK=1 bash ./scripts/bootstrap.sh
+```
+
+### MISE tasks (preferred if repo already cloned)
+
+```bash
+mise run install             # full install
+mise run setup               # mise install deps
+mise run bootstrap-dry-run   # dry-run (CHECK=1)
+mise run ansible-run         # run playbook only
+mise run ansible-check       # playbook dry-run
+mise run ansible-nvim        # deploy nvim config only
+mise run ansible-nushell     # deploy nushell config only
+mise run status              # show installed tool versions
+mise tasks                   # list all available tasks
+```
+
+---
+
+## 🔐 Secrets & Environment Variables
+
+Secrets are stored in the **macOS Keychain** — never in plaintext, never committed to git.
+
+### How it works
+
+`secrets.nu` (tracked in this repo) reads values from the Keychain at shell startup:
+
+```nushell
+# ~/.config/nushell/secrets.nu — safe to commit, contains no actual values
+let akka_key = (keychain-get "AKKA_LICENSE_KEY")
+if ($akka_key | is-not-empty) {
+  $env.AKKA_LICENSE_KEY = $akka_key
+}
+```
+
+Values are sourced in `config.nu`:
+
+```nushell
+if ("~/.config/nushell/secrets.nu" | path exists) {
+  source ~/.config/nushell/secrets.nu
+}
+```
+
+### Automated provisioning
+
+The bootstrap script collects missing secrets **interactively before installation begins**. For each missing secret, it prompts for the value and stores it in the Keychain silently (input is hidden):
+
+```
+━━━ Secrets — Keychain check ━━━
+  ⚠ Secret missing: AKKA_LICENSE_KEY
+  Akka License Key (Lightbend)
+  Value: ████████              ← hidden input
+  ✓ AKKA_LICENSE_KEY → stored in Keychain
+```
+
+On subsequent runs, already-stored secrets are skipped automatically.
+
+### Adding a new secret
+
+**1. Register it in `scripts/bootstrap.sh`:**
+
+```bash
+REQUIRED_SECRETS=(
+  "AKKA_LICENSE_KEY:Akka License Key (Lightbend)"
+  "MY_NEW_SECRET:Description shown to the user"   # ← add here
+)
+```
+
+**2. Read it in `.config/nushell/secrets.nu`:**
+
+```nushell
+let my_secret = (keychain-get "MY_NEW_SECRET")
+if ($my_secret | is-not-empty) {
+  $env.MY_NEW_SECRET = $my_secret
+}
+```
+
+**3. Add it to `ansible/roles/secrets/vars/main.yml`:**
+
+```yaml
+keychain_secrets:
+  - service: "MY_NEW_SECRET"
+    prompt: "My New Secret"
+    description: "What this secret is used for"
+```
+
+### Manual Keychain management
+
+```bash
+# Store a secret
+security add-generic-password -a "$USER" -s "MY_SECRET" -w "the_value"
+
+# Read a secret
+security find-generic-password -a "$USER" -s "MY_SECRET" -w
+
+# Delete a secret
+security delete-generic-password -a "$USER" -s "MY_SECRET"
+```
+
+> **Never commit secrets.** `.gitignore` also blocks `.mise.local.toml` which can hold local env overrides that don't belong in the Keychain.
+
+---
+
+## 🔄 Ansible
+
+### Structure
+
+```
+ansible/
+├── ansible.cfg            # Roles path, inventory, callbacks config
+├── setup.yml              # Main playbook
+├── hosts.ini              # Local inventory
+├── requirements.yml       # Galaxy collections (community.general)
+├── group_vars/
+│   └── all.yml            # Shared variables (packages, versions, paths)
+└── roles/
+    ├── base/              # macOS check, essential dirs, global .gitignore
+    ├── homebrew/          # All Homebrew formulas and casks in one pass
+    ├── mise/              # Universal version manager setup
+    ├── secrets/           # Keychain provisioning + secrets.nu symlink
+    ├── nushell/           # Shell install + symlinks + init files
+    ├── starship/          # Prompt config symlink
+    ├── ghostty/           # Terminal config symlink → Library/Application Support
+    ├── zellij/            # Multiplexer config symlink
+    ├── tmux/              # tmux + TPM bootstrap
+    ├── nvim/              # Neovim config symlink (LazyVim)
+    └── fonts/             # Nerd Fonts directory check
+```
+
+### Running the playbook manually
+
+```bash
+# Full install
+ansible-playbook ansible/setup.yml -i ansible/hosts.ini
+
+# Specific roles only
+ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags "nvim,nushell"
+
+# Dry-run
+ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff
+```
+
+### Available tags
+
+`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `starship` · `zellij` · `tmux` · `nvim`
+
+### First run — install Galaxy dependencies
+
+```bash
+ansible-galaxy collection install -r ansible/requirements.yml
+```
+
+> This is handled automatically by `bootstrap.sh`.
+
+---
+
+## 🔧 MISE — Universal Version Manager
+
+Replaces Volta, nvm, rbenv, sdkman and rustup with a single `.mise.toml` at the repo root:
+
+```toml
+[tools]
+node = "lts"
+rust = "latest"
+ruby = "3.3"
+java = "temurin-21"
+
+[settings]
+fetch_remote_versions_timeout = 60
+```
+
+```bash
+mise install          # install all tools
+mise ls               # list installed versions
+mise upgrade          # upgrade all tools to latest
+mise use node@22      # switch a specific version
+```
+
+---
+
+## 🐚 Shell: NuShell + Starship
+
+- **Shell**: NuShell (set as default via `chsh`)
+- **Prompt**: Starship
+- **Completion**: Carapace (bridges zsh, fish, bash)
+- **Navigation**: Zoxide
+
+Config files (all symlinked by Ansible):
+
+- `~/.config/nushell/config.nu`
+- `~/.config/nushell/env.nu`
+- `~/.config/nushell/secrets.nu`
+- `~/.config/starship/starship.toml`
 
 ---
 
@@ -30,98 +237,52 @@ It's a personal setup for MasOS, designed to be easily managed and deployed usin
 - Theme: `Solarized Dark - Patched`
 - Font: `PlemolJP Console NF`
 - Opacity: `0.9`
-- Config path: `~/Library/Application Support/com.mitchellh.ghostty/config`
+- Config: `~/Library/Application Support/com.mitchellh.ghostty/config`
 
-```bash
-ln -s ~/dotfiles/ghostty/config "~/Library/Application Support/com.mitchellh.ghostty/config"
-```
+The config is a **symlink** managed by Ansible — no manual `ln -s` needed.
 
 ---
 
-## 🐚 Shell: Nushell + Starship
-
-- Shell: [NuShell](https://www.nushell.sh/)
-- Prompt: [Starship](https://starship.rs/)
-- Autocompletion: [Carapace](https://github.com/rsteube/carapace-bin)
-- Directory jumping: [Zoxide](https://github.com/ajeetdsouza/zoxide)
-
-Config files:
-
-- `~/.config/nushell/config.nu`
-- `~/.config/nushell/env.nu`
-- `~/.config/starship/starship.toml`
-
----
-
-## 🧠 Neovim
+## 🧠 Neovim (LazyVim)
 
 - Framework: [LazyVim](https://www.lazyvim.org/)
-- Plugin Manager: [lazy.nvim](https://github.com/folke/lazy.nvim)
+- Plugin manager: [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-### 📁 Plugins Used (selection)
+| Plugin | Role |
+|---|---|
+| `conform.nvim` | Autoformat (biome → prettier fallback) |
+| `nvim-lint` | Linting |
+| `nvim-treesitter` | Syntax highlighting |
+| `telescope.nvim` | Fuzzy finder |
+| `mini.nvim` | UI & utilities |
+| `lualine.nvim` | Statusline |
 
-| Plugin            | Purpose                          |
-| ----------------- | -------------------------------- |
-| `conform.nvim`    | Autoformat (biome, eslint, etc.) |
-| `nvim-lint`       | Linting with fallback            |
-| `mini.nvim`       | Core UI & utilities              |
-| `nvim-treesitter` | Syntax highlighting              |
-| `telescope.nvim`  | Fuzzy finder                     |
-| `lualine.nvim`    | Statusline                       |
-
-### 🧰 Formatter logic (Conform)
-
-- Default: `biome`
-- If ESLint or Prettier config detected, fallback to `eslint_d` + `prettier`
+**Formatter logic (Conform):** defaults to `biome`, falls back to `prettier` if a config file is detected in the project.
 
 ---
 
-## 🪟 Multiplexer: Zellij
+## 🪟 Multiplexers
+
+### Zellij (primary)
 
 - Config: `~/.config/zellij/config.kdl`
-- Theme: `catppuccin-mocha.kdl`
-- Plugins: custom (see plugin section in KDL)
+- Theme: `catppuccin-mocha`
 
-```bash
-ln -s ~/dotfiles/.config/zellij ~/.config/zellij
-```
+### tmux (coexistence)
 
----
-
-## 🔄 Ansible Setup
-
-```bash
-ansible-playbook -i inventory.yml setup.yml --tags "nvim, nushell, zellij, fonts"
-```
-
-You can use tags to install parts of the config.
-
-### Example tags:
-
-- `nvim`
-- `nushell`
-- `zellij`
-- `fonts`
-- `ghostty` _(not symlinked automatically due to file-type constraints)_
+- Config: `~/.config/tmux/tmux.conf`
+- Plugins managed by [TPM](https://github.com/tmux-plugins/tpm) — **not versioned in this repo**
+- After install: `Prefix + I` to install plugins
 
 ---
 
-## 🧩 Utilities Used
+## 🧩 CLI Utilities
 
-- [Zoxide](https://github.com/ajeetdsouza/zoxide)
-- [Carapace](https://github.com/rsteube/carapace-bin)
-- [Starship](https://starship.rs)
-- [Watchman](https://facebook.github.io/watchman/)
-- [fzf](https://github.com/junegunn/fzf)
-- [ripgrep](https://github.com/BurntSushi/ripgrep)
-- [Volta](https://volta.sh/) or `nvm`
-
----
-
-## 🧪 Testing
-
-Test playbooks locally with:
-
-```bash
-ansible-playbook setup.yml --check --diff
-```
+| Tool | Purpose |
+|---|---|
+| [ripgrep](https://github.com/BurntSushi/ripgrep) | Fast grep alternative |
+| [fzf](https://github.com/junegunn/fzf) | Fuzzy finder |
+| [bat](https://github.com/sharkdp/bat) | Better `cat` with syntax highlighting |
+| [eza](https://github.com/eza-community/eza) | Better `ls` with git integration |
+| [fd](https://github.com/sharkdp/fd) | Better `find` |
+| [watchman](https://facebook.github.io/watchman/) | File watcher |``
