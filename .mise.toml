@@ -17,9 +17,13 @@ experimental = true
 # Variables d'env gérées par mise (remplace les exports manuels)
 [env]
 
-[tasks.install]
+[tasks.mise_setup]
 description = "Installe tous les outils définis dans [tools]"
 run = "mise install"
+
+[tasks.install]
+description = "Install all the requirements before ansible (first install)"
+run = "bash ./scripts/bootstrap.sh"
 
 [tasks.dry-run]
 description = "Vérifie ce qui sera installé sans rien modifier"

@@ -23,5 +23,5 @@
   homebrew_cask:
     name: "{{ item }}"
     state: present
-    failed_when: false
   loop: "{{ homebrew_casks }}"
+  ignore_errors: true

@@ -31,13 +31,19 @@
 
 - name: Créer env.nu principal (source vers dotfiles)
   copy:
-    content: source {{ dotfiles_path }}/.config/nushell/env.nu
+    content: |
+      # env.nu — installé par Ansible
+      # Source le vrai env.nu depuis les dotfiles
+      source {{ dotfiles_path }}/.config/nushell/env.nu
     dest: "{{ home }}/Library/Application Support/nushell/env.nu"
     backup: true
 
 - name: Créer config.nu principal (source vers dotfiles)
   copy:
-    content: source {{ dotfiles_path }}/.config/nushell/config.nu
+    content: |
+      # config.nu — installé par Ansible
+      # Source le vrai config.nu depuis les dotfiles
+      source {{ dotfiles_path }}/.config/nushell/config.nu
     dest: "{{ home }}/Library/Application Support/nushell/config.nu"
     backup: true
 
@@ -68,14 +74,6 @@
   shell: "echo $SHELL"
   register: current_shell
   changed_when: false
-
-- name: Ajouter nushell à /etc/shells si absent
-  lineinfile:
-    path: /etc/shells
-    line: "{{ homebrew_bin }}/nu"
-    create: false
-  become: true
-  when: "homebrew_bin + '/nu' not in current_shell.stdout"
 
 - name: Définir nushell comme shell par défaut
   command: "chsh -s {{ homebrew_bin }}/nu"
