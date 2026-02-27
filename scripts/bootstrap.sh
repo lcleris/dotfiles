@@ -35,7 +35,54 @@ error() {
 step() { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}" | tee -a "$LOG_FILE"; }
 command_exists() { command -v "$1" &>/dev/null; }
 
-# ─── Preflight ────────────────────────────────────────────────────────────────
+# ─── Secrets ──────────────────────────────────────────────────────────────────
+REQUIRED_SECRETS=(
+  "AKKA_LICENSE_KEY:Akka License Key (Lightbend)"
+  #"GITHUB_TOKEN:GitHub Personal Access Token"  ←  add here for new secrets that should be stored in the Keychain and injected dans Ansible via lookup
+)
+
+collect_secrets() {
+  step "Secrets — vérification du Keychain"
+
+  local dry_run=${CHECK:-0}
+  local all_present=true
+
+  for entry in "${REQUIRED_SECRETS[@]}"; do
+    local service="${entry%%:*}"
+    local description="${entry#*:}"
+
+    if security find-generic-password -a "$USER" -s "$service" -w &>/dev/null; then
+      success "${service} → déjà dans le Keychain"
+    else
+      all_present=false
+      if [[ "$dry_run" == "1" ]]; then
+        warn "${service} → MANQUANT (sera demandé au vrai bootstrap)"
+      else
+        echo -e "\n  ${BOLD}${YELLOW}Secret manquant : ${service}${RESET}"
+        echo -e "  ${description}"
+        echo -ne "  ${CYAN}Valeur :${RESET} "
+        # -s pour ne pas afficher la saisie
+        read -rs secret_value
+        echo ""
+
+        if [[ -n "$secret_value" ]]; then
+          security add-generic-password \
+            -a "$USER" \
+            -s "$service" \
+            -w "$secret_value" \
+            -U 2>/dev/null
+          success "${service} → stocké dans le Keychain"
+        else
+          warn "${service} → ignoré (valeur vide)"
+        fi
+      fi
+    fi
+  done
+
+  if [[ "$all_present" == "true" ]]; then
+    success "Tous les secrets sont présents"
+  fi
+}
 preflight() {
   step "Preflight checks"
   [[ "$(uname)" == "Darwin" ]] || error "Ce script est conçu pour macOS uniquement."
@@ -200,6 +247,7 @@ main() {
   echo "Bootstrap started at $(date)" >"$LOG_FILE"
 
   preflight
+  collect_secrets
   install_homebrew
   install_git
   install_mise
