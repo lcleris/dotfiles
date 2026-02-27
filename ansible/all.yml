@@ -1,0 +1,47 @@
+---
+# =============================================================================
+# group_vars/all.yml — Variables globales partagées entre tous les rôles
+# =============================================================================
+
+# Path to dotfiles repo (override possible by env var DOTFILES_PATH)
+dotfiles_path: "{{ lookup('env', 'DOTFILES_PATH') | default(ansible_env.HOME + '/dotfiles', true) }}"
+
+# Chemin home
+home: "{{ ansible_env.HOME }}"
+
+# Homebrew prefix (Apple Silicon vs Intel)
+homebrew_prefix: "{{ '/opt/homebrew' if ansible_architecture == 'arm64' else '/usr/local' }}"
+homebrew_bin: "{{ homebrew_prefix }}/bin"
+
+# Shell
+target_shell: "{{ homebrew_bin }}/nu"
+
+# Packages Homebrew to install (formulas)
+homebrew_packages:
+  - git
+  - zoxide
+  - carapace
+  - starship
+  - nushell
+  - zellij
+  #- tmux
+  - mise
+  - ripgrep
+  - fzf
+  - fd
+  - bat
+  - eza
+  - neovim
+  - watchman
+
+# Casks Homebrew to install
+homebrew_casks:
+  - ghostty
+  - font-jetbrains-mono-nerd-font
+  - font-plemol-jp-console-nerd-font
+
+mise_tools:
+  node: "lts"
+  rust: "latest"
+  ruby: "3.3"
+  java: "temurin-21"

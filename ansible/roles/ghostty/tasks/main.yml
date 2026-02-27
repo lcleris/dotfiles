@@ -1,18 +1,27 @@
-# Install Ghostty if not present
-- name: Check if Ghostty is installed
+- name: Vérifier si Ghostty est installé
   stat:
     path: "/Applications/Ghostty.app"
-  register: ghostty_installed
+  register: ghostty_app
 
-- name: Install Ghostty via Homebrew (if not present)
+- name: Installer Ghostty via Homebrew Cask
   homebrew_cask:
     name: ghostty
     state: present
-  when: not ghostty_installed.stat.exists
+  when: not ghostty_app.stat.exists
 
-- name: Copy Ghostty config (overwrite existing)
-  copy:
+- name: Créer le répertoire de config Ghostty
+  file:
+    path: "{{ home }}/Library/Application Support/com.mitchellh.ghostty"
+    state: directory
+
+- name: Supprimer la config Ghostty existante
+  file:
+    path: "{{ home }}/Library/Application Support/com.mitchellh.ghostty/config"
+    state: absent
+
+- name: Symlink config Ghostty → dotfiles
+  file:
     src: "{{ dotfiles_path }}/.config/ghostty/config"
-    dest: "{{ lookup('env', 'HOME') }}/Library/Application Support/com.mitchellh.ghostty/config"
-    backup: yes
-    force: yes
+    dest: "{{ home }}/Library/Application Support/com.mitchellh.ghostty/config"
+    state: link
+    force: true

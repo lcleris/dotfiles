@@ -1,0 +1,27 @@
+- name: Vérifier qu'on est sur macOS
+  fail:
+    msg: "Ce playbook est conçu pour macOS uniquement (détecté : {{ ansible_system }})"
+  when: ansible_system != "Darwin"
+
+- name: Créer les répertoires de config essentiels
+  file:
+    path: "{{ home }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  loop:
+    - .config
+    - .cache/starship
+    - .cache/carapace
+    - .local/bin
+
+- name: S'assurer que .gitignore global exclut .DS_Store
+  lineinfile:
+    path: "{{ home }}/.gitignore_global"
+    line: ".DS_Store"
+    create: true
+
+- name: Configurer git pour utiliser le .gitignore global
+  community.general.git_config:
+    name: core.excludesfile
+    scope: global
+    value: "{{ home }}/.gitignore_global"

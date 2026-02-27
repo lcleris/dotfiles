@@ -1,0 +1,54 @@
+# Commandes utiles :
+#   mise install          → installe tous les outils
+#   mise ls               → liste les outils installés
+#   mise use node@lts     → changer une version
+#   mise x -- node --version → exécuter avec les outils activés
+
+[tools]
+node = "lts"
+rust = "latest"
+ruby = "3.3"
+java = "temurin-21"
+
+[settings]
+auto_install = true
+experimental = true
+
+# Variables d'env gérées par mise (remplace les exports manuels)
+[env]
+
+[tasks.install]
+description = "Installe tous les outils définis dans [tools]"
+run = "mise install"
+
+[tasks.dry-run]
+description = "Vérifie ce qui sera installé sans rien modifier"
+run = "mise install --dry-run"
+
+[tasks.bootstrap-dry-run]
+description = "Dry-run du bootstrap complet (CHECK=1)"
+run = "CHECK=1 bash ./scripts/bootstrap.sh"
+
+[tasks.update]
+description = "Met à jour tous les outils vers leur dernière version"
+run = "mise upgrade"
+
+[tasks.status]
+description = "Affiche les versions installées vs demandées"
+run = "mise ls"
+
+[tasks.ansible-check]
+description = "Dry-run du playbook Ansible (ne modifie rien)"
+run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff"
+
+[tasks.ansible-run]
+description = "Lance le playbook Ansible complet"
+run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini"
+
+[tasks.ansible-nvim]
+description = "Déploie uniquement la config Neovim"
+run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags nvim"
+
+[tasks.ansible-nushell]
+description = "Déploie uniquement la config NuShell"
+run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags nushell"

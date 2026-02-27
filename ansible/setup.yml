@@ -1,0 +1,23 @@
+---
+# =============================================================================
+# setup.yml — Loan CLERIS | Dotfiles Ansible Playbook
+# Usage: ansible-playbook ansible/setup.yml -i ansible/hosts.ini
+#        ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags "nvim,nushell"
+# =============================================================================
+- hosts: localhost
+  connection: local
+
+  vars_files:
+    - group_vars/all.yml
+
+  roles:
+    - { role: base,     tags: ["base", "always"] }
+    - { role: homebrew, tags: ["homebrew"] }
+    - { role: mise,     tags: ["mise"] }
+    - { role: fonts,    tags: ["fonts"] }
+    - { role: ghostty,  tags: ["ghostty"] }
+    - { role: nushell,  tags: ["nushell"] }
+    - { role: starship, tags: ["starship"] }
+    - { role: zellij,   tags: ["zellij"] }
+    - { role: tmux,     tags: ["tmux"] }
+    - { role: nvim,     tags: ["nvim"] }
