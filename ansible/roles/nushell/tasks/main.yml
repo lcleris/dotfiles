@@ -1,9 +1,9 @@
-- name: Installer Nushell via Homebrew
+- name: Install NuShell via Homebrew
   homebrew:
     name: nushell
     state: present
 
-- name: Installer les dépendances shell
+- name: Install shell dependencies
   homebrew:
     name: "{{ item }}"
     state: present
@@ -12,42 +12,42 @@
     - carapace
     - starship
 
-- name: Supprimer le symlink nushell existant
+- name: Remove existing nushell config symlink
   file:
     path: "{{ home }}/.config/nushell"
     state: absent
 
-- name: Créer le symlink nushell vers dotfiles
+- name: Symlink nushell config → dotfiles
   file:
     src: "{{ dotfiles_path }}/.config/nushell"
     dest: "{{ home }}/.config/nushell"
     state: link
     force: true
 
-- name: Créer le répertoire Application Support/nushell
+- name: Create Application Support/nushell directory
   file:
     path: "{{ home }}/Library/Application Support/nushell"
     state: directory
 
-- name: Créer env.nu principal (source vers dotfiles)
+- name: Create env.nu entry point (sources dotfiles)
   copy:
     content: |
-      # env.nu — installé par Ansible
-      # Source le vrai env.nu depuis les dotfiles
+      # env.nu — managed by Ansible
+      # Sources the real env.nu from dotfiles
       source {{ dotfiles_path }}/.config/nushell/env.nu
     dest: "{{ home }}/Library/Application Support/nushell/env.nu"
     backup: true
 
-- name: Créer config.nu principal (source vers dotfiles)
+- name: Create config.nu entry point (sources dotfiles)
   copy:
     content: |
-      # config.nu — installé par Ansible
-      # Source le vrai config.nu depuis les dotfiles
+      # config.nu — managed by Ansible
+      # Sources the real config.nu from dotfiles
       source {{ dotfiles_path }}/.config/nushell/config.nu
     dest: "{{ home }}/Library/Application Support/nushell/config.nu"
     backup: true
 
-- name: Créer les répertoires cache
+- name: Create cache directories
   file:
     path: "{{ home }}/{{ item }}"
     state: directory
@@ -55,27 +55,27 @@
     - .cache/starship
     - .cache/carapace
 
-- name: Générer l'init starship pour nushell
+- name: Generate starship init for nushell
   shell: "{{ homebrew_bin }}/starship init nu > {{ home }}/.cache/starship/init.nu"
   args:
     creates: "{{ home }}/.cache/starship/init.nu"
 
-- name: Générer l'init zoxide pour nushell
+- name: Generate zoxide init for nushell
   shell: "{{ homebrew_bin }}/zoxide init nushell > {{ home }}/.zoxide.nu"
   args:
     creates: "{{ home }}/.zoxide.nu"
 
-- name: Générer l'init carapace pour nushell
+- name: Generate carapace init for nushell
   shell: "{{ homebrew_bin }}/carapace _carapace nushell > {{ home }}/.cache/carapace/init.nu"
   args:
     creates: "{{ home }}/.cache/carapace/init.nu"
 
-- name: Vérifier le shell courant
+- name: Check current shell
   shell: "echo $SHELL"
   register: current_shell
   changed_when: false
 
-- name: Définir nushell comme shell par défaut
+- name: Set nushell as default shell
   command: "chsh -s {{ homebrew_bin }}/nu"
   when: current_shell.stdout != homebrew_bin + "/nu"
   become: false

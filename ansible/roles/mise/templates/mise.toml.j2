@@ -1,3 +1,7 @@
+# ~/.mise.toml — géré par Ansible
+# Remplace : Volta, nvm, rbenv, sdkman, rustup
+# Doc : https://mise.jdx.dev
+
 [tools]
 {% for tool, version in mise_tools.items() %}
 {{ tool }} = "{{ version }}"

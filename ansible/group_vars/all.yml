@@ -1,7 +1,7 @@
 dotfiles_path: "{{ lookup('env', 'DOTFILES_PATH') | default(lookup('env', 'HOME') + '/dotfiles', true) }}"
 
 home: "{{ ansible_env.HOME }}"
-
+# ansible_facts["architecture"] replaces deprecated ansible_architecture
 homebrew_prefix: "{{ '/opt/homebrew' if ansible_facts['architecture'] == 'arm64' else '/usr/local' }}"
 homebrew_bin: "{{ homebrew_prefix }}/bin"
 
@@ -22,7 +22,7 @@ homebrew_packages:
   - eza
   - neovim
   - watchman
-  # - tmux
+  # - tmux  # uncomment if you want tmux managed by Ansible
 
 homebrew_casks:
   - ghostty
@@ -34,4 +34,4 @@ mise_tools:
   rust: "latest"
   ruby: "3.3"
   java: "temurin-21"
-  # gradle: "latest"  # décommenter si besoin java: "temurin-21"
+  # gradle: "latest"  # uncomment if needed

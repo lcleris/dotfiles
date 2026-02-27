@@ -3,13 +3,13 @@
 # bootstrap.sh — Loan CLERIS | Dotfiles Setup
 # Usage: curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash
 # Options:
-#   ANSIBLE_TAGS="nvim,nushell" ./bootstrap.sh   → n'installer que certains rôles
-#   CHECK=1 ./bootstrap.sh                        → dry-run, ne modifie rien
+#   ANSIBLE_TAGS="nvim,nushell" ./bootstrap.sh   → install specific roles only
+#   CHECK=1 ./bootstrap.sh                        → dry-run, no changes made
 # =============================================================================
 
 set -euo pipefail
 
-# ─── Colors ──────────────────────────────────────────────────────────────────
+# ─── Colors ───────────────────────────────────────────────────────────────────
 RESET="\033[0m"
 BOLD="\033[1m"
 GREEN="\033[0;32m"
@@ -25,24 +25,26 @@ LOG_FILE="${HOME}/.dotfiles_bootstrap.log"
 ANSIBLE_TAGS="${ANSIBLE_TAGS:-"all"}"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
-log() { echo -e "${BOLD}${BLUE}[bootstrap]${RESET} $*" | tee -a "$LOG_FILE"; }
+log()     { echo -e "${BOLD}${BLUE}[bootstrap]${RESET} $*" | tee -a "$LOG_FILE"; }
 success() { echo -e "${BOLD}${GREEN}  ✓ $*${RESET}" | tee -a "$LOG_FILE"; }
-warn() { echo -e "${BOLD}${YELLOW}  ⚠ $*${RESET}" | tee -a "$LOG_FILE"; }
-error() {
+warn()    { echo -e "${BOLD}${YELLOW}  ⚠ $*${RESET}" | tee -a "$LOG_FILE"; }
+error()   {
   echo -e "${BOLD}${RED}  ✗ $*${RESET}" | tee -a "$LOG_FILE"
   exit 1
 }
-step() { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}" | tee -a "$LOG_FILE"; }
+step()    { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}" | tee -a "$LOG_FILE"; }
 command_exists() { command -v "$1" &>/dev/null; }
 
 # ─── Secrets ──────────────────────────────────────────────────────────────────
+# Format: "KEYCHAIN_SERVICE_NAME:Description shown to the user"
+# Add new secrets here — they will be prompted before installation begins
 REQUIRED_SECRETS=(
   "AKKA_LICENSE_KEY:Akka License Key (Lightbend)"
-  #"GITHUB_TOKEN:GitHub Personal Access Token"  ←  add here for new secrets that should be stored in the Keychain and injected dans Ansible via lookup
+  # "GITHUB_TOKEN:GitHub Personal Access Token"  ← add more secrets here
 )
 
 collect_secrets() {
-  step "Secrets — vérification du Keychain"
+  step "Secrets — Keychain check"
 
   local dry_run=${CHECK:-0}
   local all_present=true
@@ -52,17 +54,16 @@ collect_secrets() {
     local description="${entry#*:}"
 
     if security find-generic-password -a "$USER" -s "$service" -w &>/dev/null; then
-      success "${service} → déjà dans le Keychain"
+      success "${service} → already in Keychain"
     else
       all_present=false
       if [[ "$dry_run" == "1" ]]; then
-        warn "${service} → MANQUANT (sera demandé au vrai bootstrap)"
+        warn "${service} → MISSING (will be prompted on real bootstrap)"
       else
-        echo -e "\n  ${BOLD}${YELLOW}Secret manquant : ${service}${RESET}"
+        echo -e "\n  ${BOLD}${YELLOW}Missing secret: ${service}${RESET}"
         echo -e "  ${description}"
-        echo -ne "  ${CYAN}Valeur :${RESET} "
-        # -s pour ne pas afficher la saisie
-        read -rs secret_value
+        echo -ne "  ${CYAN}Value:${RESET} "
+        read -rs secret_value  # -s hides input
         echo ""
 
         if [[ -n "$secret_value" ]]; then
@@ -71,25 +72,27 @@ collect_secrets() {
             -s "$service" \
             -w "$secret_value" \
             -U 2>/dev/null
-          success "${service} → stocké dans le Keychain"
+          success "${service} → stored in Keychain"
         else
-          warn "${service} → ignoré (valeur vide)"
+          warn "${service} → skipped (empty value)"
         fi
       fi
     fi
   done
 
   if [[ "$all_present" == "true" ]]; then
-    success "Tous les secrets sont présents"
+    success "All secrets are present"
   fi
 }
+
+# ─── Preflight ────────────────────────────────────────────────────────────────
 preflight() {
   step "Preflight checks"
-  [[ "$(uname)" == "Darwin" ]] || error "Ce script est conçu pour macOS uniquement."
+  [[ "$(uname)" == "Darwin" ]] || error "This script is designed for macOS only."
   success "macOS $(sw_vers -productVersion)"
 
   if ! xcode-select -p &>/dev/null; then
-    log "Installation des Xcode Command Line Tools..."
+    log "Installing Xcode Command Line Tools..."
     xcode-select --install
     until xcode-select -p &>/dev/null; do sleep 5; done
   fi
@@ -100,18 +103,18 @@ preflight() {
 install_homebrew() {
   step "Homebrew"
   if command_exists brew; then
-    warn "Homebrew déjà installé — mise à jour..."
-    # GIT_TERMINAL_PROMPT=0 évite le blocage sur les credentials git
-    # || true évite que l'erreur du tap déprécié cask-fonts ne stoppe le script
+    warn "Homebrew already installed — updating..."
+    # GIT_TERMINAL_PROMPT=0 prevents git from blocking on credential prompts
+    # grep -v filters out noise from the deprecated cask-fonts tap and git errors
     GIT_TERMINAL_PROMPT=0 brew update --quiet 2>&1 | grep -v "cask-fonts" | grep -v "fatal:" || true
 
-    # Supprimer le tap déprécié homebrew/cask-fonts s'il est encore présent
+    # Remove deprecated homebrew/cask-fonts tap if still present
     if brew tap | grep -q "homebrew/cask-fonts"; then
-      warn "Suppression du tap déprécié homebrew/cask-fonts..."
+      warn "Removing deprecated tap: homebrew/cask-fonts..."
       brew untap homebrew/homebrew-cask-fonts 2>/dev/null || true
     fi
   else
-    log "Installation de Homebrew..."
+    log "Installing Homebrew..."
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     if [[ -f "/opt/homebrew/bin/brew" ]]; then
       eval "$(/opt/homebrew/bin/brew shellenv)"
@@ -132,11 +135,11 @@ install_git() {
 
 # ─── MISE ─────────────────────────────────────────────────────────────────────
 install_mise() {
-  step "MISE (version manager universel)"
+  step "MISE (universal version manager)"
   if command_exists mise; then
-    warn "MISE déjà installé ($(mise --version)) — skip"
+    warn "MISE already installed ($(mise --version)) — skipping"
   else
-    log "Installation de MISE..."
+    log "Installing MISE..."
     brew install mise
     eval "$(mise activate bash)"
     grep -q "mise activate" "${HOME}/.zshrc" 2>/dev/null ||
@@ -149,10 +152,10 @@ install_mise() {
 install_ansible() {
   step "Ansible"
   if command_exists ansible; then
-    warn "Ansible déjà installé — skip"
+    warn "Ansible already installed — skipping"
   else
     brew install ansible
-    # Collection community.general pour git_config
+    # community.general required for git_config module
     ansible-galaxy collection install community.general
   fi
   success "Ansible $(ansible --version | head -1 | awk '{print $NF}')"
@@ -162,27 +165,27 @@ install_ansible() {
 clone_dotfiles() {
   step "Dotfiles"
   if [[ -d "${DOTFILES_DIR}/.git" ]]; then
-    warn "Repo déjà cloné — synchronisation..."
+    warn "Repo already cloned — syncing..."
     local current_branch
     current_branch=$(git -C "${DOTFILES_DIR}" rev-parse --abbrev-ref HEAD)
-    log "Branche courante : ${current_branch}"
+    log "Current branch: ${current_branch}"
 
-    # Vérifier si la branche a un upstream configuré
+    # Check if branch has a configured upstream
     if git -C "${DOTFILES_DIR}" rev-parse --abbrev-ref "@{upstream}" &>/dev/null; then
       GIT_TERMINAL_PROMPT=0 git -C "${DOTFILES_DIR}" pull --rebase --autostash
     else
-      # Pas de tracking → fetch + set upstream sur origin/main ou origin/<branche>
-      warn "Pas de tracking configuré pour '${current_branch}' — fetch depuis origin..."
+      # No tracking → fetch and set upstream if branch exists on remote
+      warn "No upstream tracking for '${current_branch}' — fetching from origin..."
       GIT_TERMINAL_PROMPT=0 git -C "${DOTFILES_DIR}" fetch origin
       if git -C "${DOTFILES_DIR}" ls-remote --heads origin "${current_branch}" | grep -q "${current_branch}"; then
         git -C "${DOTFILES_DIR}" branch --set-upstream-to="origin/${current_branch}" "${current_branch}"
         git -C "${DOTFILES_DIR}" pull --rebase --autostash
       else
-        warn "La branche '${current_branch}' n'existe pas sur origin — on reste sur le commit local."
+        warn "Branch '${current_branch}' does not exist on origin — staying on local commit."
       fi
     fi
   else
-    log "Clonage de ${DOTFILES_REPO}..."
+    log "Cloning ${DOTFILES_REPO}..."
     GIT_TERMINAL_PROMPT=0 git clone "${DOTFILES_REPO}" "${DOTFILES_DIR}"
   fi
   success "Dotfiles → ${DOTFILES_DIR}"
@@ -190,20 +193,19 @@ clone_dotfiles() {
 
 # ─── Run Ansible ──────────────────────────────────────────────────────────────
 run_ansible() {
-  step "Playbook Ansible"
+  step "Ansible Playbook"
 
-  # Le playbook s'appelle setup.yml (pas macbook-setup.yml)
   local playbook="${DOTFILES_DIR}/ansible/setup.yml"
   local inventory="${DOTFILES_DIR}/ansible/hosts.ini"
 
-  [[ -f "$playbook" ]] || error "Playbook introuvable : ${playbook}"
+  [[ -f "$playbook" ]] || error "Playbook not found: ${playbook}"
 
   local cmd=(ansible-playbook "$playbook" -i "$inventory" --diff)
 
   [[ "$ANSIBLE_TAGS" != "all" ]] && cmd+=(--tags "$ANSIBLE_TAGS") &&
-    log "Tags : ${ANSIBLE_TAGS}"
+    log "Tags: ${ANSIBLE_TAGS}"
 
-  [[ "${CHECK:-0}" == "1" ]] && cmd+=(--check) && warn "Mode dry-run (CHECK=1)"
+  [[ "${CHECK:-0}" == "1" ]] && cmd+=(--check) && warn "Dry-run mode (CHECK=1)"
 
   "${cmd[@]}"
   success "Playbook OK"
@@ -211,26 +213,25 @@ run_ansible() {
 
 # ─── Post-install ─────────────────────────────────────────────────────────────
 post_install() {
-  step "Post-installation"
+  step "Post-install"
 
-  # MISE : installer tous les outils (node, rust, ruby, java...)
   if [[ -f "${DOTFILES_DIR}/.mise.toml" ]]; then
-    log "Installation des outils via MISE..."
+    log "Installing tools via MISE..."
     mise install --yes
-    success "Outils MISE installés"
+    success "MISE tools installed"
   fi
 
   echo -e "\n${BOLD}${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-  echo -e "${BOLD}${GREEN}  ✓ Bootstrap terminé !${RESET}"
+  echo -e "${BOLD}${GREEN}  ✓ Bootstrap complete!${RESET}"
   echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
-  echo -e "\n  ${BOLD}Dotfiles :${RESET} ${DOTFILES_DIR}"
-  echo -e "  ${BOLD}Logs     :${RESET} ${LOG_FILE}"
-  echo -e "\n  ${YELLOW}➜ Redémarre ton terminal :${RESET}"
+  echo -e "\n  ${BOLD}Dotfiles:${RESET} ${DOTFILES_DIR}"
+  echo -e "  ${BOLD}Logs:    ${RESET} ${LOG_FILE}"
+  echo -e "\n  ${YELLOW}➜ Restart your terminal:${RESET}"
   echo -e "    ${CYAN}exec nu${RESET}   (NuShell)"
   echo -e "    ${CYAN}exec zsh${RESET}  (fallback)\n"
 }
 
-# ─── Main ────────────────────────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────────────────────────────
 main() {
   echo -e "\n${BOLD}${CYAN}"
   echo "  ██╗      ██████╗  █████╗ ███╗   ██╗     ██████╗██╗     ███████╗██████╗ ██╗███████╗"
@@ -241,7 +242,7 @@ main() {
   echo "  ╚══════╝ ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝╚══════╝"
   echo -e "${RESET}"
   echo -e "  ${BOLD}Dotfiles Bootstrap${RESET}"
-  echo -e "  Log : ${LOG_FILE}\n"
+  echo -e "  Log: ${LOG_FILE}\n"
 
   mkdir -p "$(dirname "$LOG_FILE")"
   echo "Bootstrap started at $(date)" >"$LOG_FILE"
