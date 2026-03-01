@@ -25,14 +25,14 @@ LOG_FILE="${HOME}/.dotfiles_bootstrap.log"
 ANSIBLE_TAGS="${ANSIBLE_TAGS:-"all"}"
 
 # ─── Helpers ──────────────────────────────────────────────────────────────────
-log()     { echo -e "${BOLD}${BLUE}[bootstrap]${RESET} $*" | tee -a "$LOG_FILE"; }
+log() { echo -e "${BOLD}${BLUE}[bootstrap]${RESET} $*" | tee -a "$LOG_FILE"; }
 success() { echo -e "${BOLD}${GREEN}  ✓ $*${RESET}" | tee -a "$LOG_FILE"; }
-warn()    { echo -e "${BOLD}${YELLOW}  ⚠ $*${RESET}" | tee -a "$LOG_FILE"; }
-error()   {
+warn() { echo -e "${BOLD}${YELLOW}  ⚠ $*${RESET}" | tee -a "$LOG_FILE"; }
+error() {
   echo -e "${BOLD}${RED}  ✗ $*${RESET}" | tee -a "$LOG_FILE"
   exit 1
 }
-step()    { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}" | tee -a "$LOG_FILE"; }
+step() { echo -e "\n${BOLD}${CYAN}━━━ $* ━━━${RESET}" | tee -a "$LOG_FILE"; }
 command_exists() { command -v "$1" &>/dev/null; }
 
 # ─── Secrets ──────────────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ collect_secrets() {
         echo -e "\n  ${BOLD}${YELLOW}Missing secret: ${service}${RESET}"
         echo -e "  ${description}"
         echo -ne "  ${CYAN}Value:${RESET} "
-        read -rs secret_value  # -s hides input
+        read -rs secret_value # -s hides input
         echo ""
 
         if [[ -n "$secret_value" ]]; then
@@ -131,6 +131,10 @@ install_git() {
   step "Git"
   command_exists git || brew install git
   success "Git $(git --version | awk '{print $3}')"
+
+  step "Git CLI"
+  command_exists gh || brew install gh
+  success "GitHub CLI $(gh --version | head -1 | awk '{print $3}')"
 }
 
 # ─── MISE ─────────────────────────────────────────────────────────────────────
