@@ -135,6 +135,10 @@ install_git() {
   step "Git CLI"
   command_exists gh || brew install gh
   success "GitHub CLI $(gh --version | head -1 | awk '{print $3}')"
+
+  step "Gitlab CLI"
+  command_exists glab || brew install glab
+  success "GitLab CLI $(glab --version | head -1 | awk '{print $3}')"
 }
 
 # ─── MISE ─────────────────────────────────────────────────────────────────────
