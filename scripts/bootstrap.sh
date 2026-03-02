@@ -19,7 +19,7 @@ BLUE="\033[0;34m"
 CYAN="\033[0;36m"
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-DOTFILES_REPO="https://github.com/TheHikuro/dotfiles.git"
+DOTFILES_REPO="git@github.com:TheHikuro/dotfiles.git"
 DOTFILES_DIR="${HOME}/dotfiles"
 LOG_FILE="${HOME}/.dotfiles_bootstrap.log"
 ANSIBLE_TAGS="${ANSIBLE_TAGS:-"all"}"
