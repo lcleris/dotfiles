@@ -70,6 +70,11 @@
   args:
     creates: "{{ home }}/.cache/carapace/init.nu"
 
+- name: Generate mise.nu activation file
+  shell: "{{ homebrew_bin }}/mise activate nu > {{ ansible_env.HOME }}/.config/nushell/mise.nu"
+  args:
+    creates: "{{ ansible_env.HOME }}/.config/nushell/mise.nu"
+
 - name: Check current shell
   shell: "echo $SHELL"
   register: current_shell

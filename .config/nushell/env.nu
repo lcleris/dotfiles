@@ -48,10 +48,15 @@ $env.ENV_CONVERSIONS = {
 $env.NU_LIB_DIRS = [
   ($nu.default-config-dir | path join 'scripts')
   ($nu.data-dir | path join 'completions')
+  $nu.default-config-dir    
 ]
 $env.NU_PLUGIN_DIRS = [
   ($nu.default-config-dir | path join 'plugins')
 ]
+
+# ─── MISE activation ──────────────────────────────────────────────────────────
+let mise_path = ($nu.default-config-dir | path join mise.nu)
+^mise activate nu | save $mise_path --force
 
 # ─── Init tools ───────────────────────────────────────────────────────────────
 mkdir ~/.cache/starship

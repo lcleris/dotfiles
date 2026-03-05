@@ -937,7 +937,6 @@ source ~/.zoxide.nu
 source $"($nu.cache-dir)/carapace.nu"
 use ~/.cache/starship/init.nu
 
-
 let ruby_ver = "3.4.0"
 let gem_home = ($env.HOME | path join ".gem" "ruby" $ruby_ver)
 let gem_bin = ($gem_home | path join "bin")
@@ -949,4 +948,10 @@ $env.GEM_PATH = $gem_home
 # Add gem bin to PATH if it exists
 if ($gem_bin | path exists) {
   $env.PATH = ($env.PATH | prepend $gem_bin)
+}
+
+# ─── MISE activation ──────────────────────────────────────────────────────────
+let mise_path = ($nu.default-config-dir | path join mise.nu)
+if ($mise_path | path exists) {
+  source ($nu.default-config-dir | path join mise.nu)
 }
