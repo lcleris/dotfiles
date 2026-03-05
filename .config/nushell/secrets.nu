@@ -8,8 +8,9 @@
 
 def keychain-get [service: string] {
   try {
-    security find-generic-password -a $env.USER -s $service -w
-    | str trim
+       security find-generic-password -a $env.user -s $service -w 
+        | decode utf-8 
+        | str trim
   } catch {
     ""
   }

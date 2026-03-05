@@ -67,5 +67,7 @@ carapace _carapace nushell | save --force ~/.cache/carapace/init.nu
 
 zoxide init nushell | save --force ~/.zoxide.nu
 
+source ~/.config/nushell/secrets.nu
+
 # ─── Load carapace's completions ─────────────────────────────────────────
 source $"($nu.cache-dir)/carapace.nu"

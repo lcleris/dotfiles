@@ -21,8 +21,9 @@
   copy:
     content: |
       # env.nu — managed by Ansible
-      # Sources the real env.nu from dotfiles
+      # Sources the real env.nu and secrets from dotfiles
       source {{ dotfiles_path }}/.config/nushell/env.nu
+      source {{ dotfiles_path }}/.config/nushell/secrets.nu
     dest: "{{ home }}/Library/Application Support/nushell/env.nu"
     backup: true
 
@@ -58,6 +59,11 @@
   args:
     creates: "{{ home }}/.cache/carapace/init.nu"
 
+- name: Generate mise.nu activation file
+  shell: "{{ homebrew_bin }}/mise activate nu > {{ home }}/.config/nushell/mise.nu"
+  args:
+    creates: "{{ home }}/.config/nushell/mise.nu"
+
 - name: Check current shell
   shell: "echo $SHELL"
   register: current_shell
@@ -65,5 +71,6 @@
 
 - name: Set nushell as default shell
   command: "chsh -s {{ homebrew_bin }}/nu"
+  changed_when: false
   when: current_shell.stdout != homebrew_bin + "/nu"
   become: false
