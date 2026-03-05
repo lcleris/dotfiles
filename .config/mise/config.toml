@@ -9,6 +9,8 @@ node = "lts"
 rust = "latest"
 ruby = "3.3"
 java = "temurin-21"
+"npm:commitizen" = "latest"
+"npm:nx" = "latest"
 
 [settings]
 auto_install = true
