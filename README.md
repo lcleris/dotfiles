@@ -1,21 +1,22 @@
 # 🛠️ Dotfiles — Loan CLERIS
 
-Personal macOS setup, fully managed and deployed via Ansible. Not intended for public use, but feel free to use it as a reference.
+Personal macOS setup, fully managed and deployed via Ansible + GNU Stow. Not intended for public use, but feel free to use it as a reference.
 
 ## ✨ Stack
 
-| Tool | Role |
-|---|---|
-| [Ansible](https://www.ansible.com/) | Deployment & automation |
-| [MISE](https://mise.jdx.dev/) | Universal version manager (Node, Rust, Ruby, Java…) |
-| [NuShell](https://www.nushell.sh/) | Primary shell |
-| [Starship](https://starship.rs/) | Prompt |
-| [Ghostty](https://ghostty.org/) | Terminal emulator |
-| [Zellij](https://zellij.dev/) | Terminal multiplexer |
-| [tmux](https://github.com/tmux/tmux) | Terminal multiplexer (legacy / coexistence) |
-| [Neovim](https://neovim.io/) | Editor (LazyVim-based) |
-| [Carapace](https://github.com/rsteube/carapace-bin) | Multi-shell completion |
-| [Zoxide](https://github.com/ajeetdsouza/zoxide) | Smart directory navigation |
+| Tool                                                | Role                                                |
+| --------------------------------------------------- | --------------------------------------------------- |
+| [Ansible](https://www.ansible.com/)                 | Deployment & automation                             |
+| [GNU Stow](https://www.gnu.org/software/stow/)      | Dotfiles symlink manager                            |
+| [MISE](https://mise.jdx.dev/)                       | Universal version manager (Node, Rust, Ruby, Java…) |
+| [NuShell](https://www.nushell.sh/)                  | Primary shell                                       |
+| [Starship](https://starship.rs/)                    | Prompt                                              |
+| [Ghostty](https://ghostty.org/)                     | Terminal emulator                                   |
+| [Zellij](https://zellij.dev/)                       | Terminal multiplexer                                |
+| [tmux](https://github.com/tmux/tmux)                | Terminal multiplexer (legacy / coexistence)         |
+| [Neovim](https://neovim.io/)                        | Editor (LazyVim-based)                              |
+| [Carapace](https://github.com/rsteube/carapace-bin) | Multi-shell completion                              |
+| [Zoxide](https://github.com/ajeetdsouza/zoxide)     | Smart directory navigation                          |
 
 ---
 
@@ -71,12 +72,11 @@ if ($akka_key | is-not-empty) {
 }
 ```
 
-Values are sourced in `config.nu`:
+Secrets are sourced in **`env.nu`** (not `config.nu`) so environment variables are available to all processes, including backend servers:
 
 ```nushell
-if ("~/.config/nushell/secrets.nu" | path exists) {
-  source ~/.config/nushell/secrets.nu
-}
+# env.nu
+source ~/.config/nushell/secrets.nu
 ```
 
 ### Automated provisioning
@@ -139,6 +139,33 @@ security delete-generic-password -a "$USER" -s "MY_SECRET"
 
 ---
 
+## 🔗 Symlinks — GNU Stow
+
+All config symlinks are managed by **GNU Stow** — no manual `ln -s` needed.
+
+Stow maps `dotfiles/.config/` directly to `~/.config/`:
+
+```
+dotfiles/.config/nushell/  →  ~/.config/nushell
+dotfiles/.config/nvim/     →  ~/.config/nvim
+dotfiles/.config/mise/     →  ~/.config/mise
+dotfiles/.config/starship/ →  ~/.config/starship
+dotfiles/.config/tmux/     →  ~/.config/tmux
+dotfiles/.config/zellij/   →  ~/.config/zellij
+dotfiles/.config/fish/     →  ~/.config/fish
+```
+
+Stow is run automatically at the end of the Ansible playbook (`stow` role). To re-apply manually:
+
+```bash
+cd ~/dotfiles
+stow --dir=. --target=~/.config --restow .config
+```
+
+> Ghostty is the exception — its config lives in `~/Library/Application Support/com.mitchellh.ghostty/config` and is handled separately by the `ghostty` Ansible role.
+
+---
+
 ## 🔄 Ansible
 
 ### Structure
@@ -155,14 +182,12 @@ ansible/
     ├── base/              # macOS check, essential dirs, global .gitignore
     ├── homebrew/          # All Homebrew formulas and casks in one pass
     ├── mise/              # Universal version manager setup
-    ├── secrets/           # Keychain provisioning + secrets.nu symlink
-    ├── nushell/           # Shell install + symlinks + init files
-    ├── starship/          # Prompt config symlink
+    ├── secrets/           # Keychain provisioning
+    ├── nushell/           # Shell install + init files (env.nu / config.nu)
     ├── ghostty/           # Terminal config symlink → Library/Application Support
-    ├── zellij/            # Multiplexer config symlink
     ├── tmux/              # tmux + TPM bootstrap
-    ├── nvim/              # Neovim config symlink (LazyVim)
-    └── fonts/             # Nerd Fonts directory check
+    ├── fonts/             # Nerd Fonts directory check
+    └── stow/              # GNU Stow — creates all ~/.config symlinks
 ```
 
 ### Running the playbook manually
@@ -180,7 +205,7 @@ ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff
 
 ### Available tags
 
-`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `starship` · `zellij` · `tmux` · `nvim`
+`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `tmux` · `stow`
 
 ### First run — install Galaxy dependencies
 
@@ -194,7 +219,7 @@ ansible-galaxy collection install -r ansible/requirements.yml
 
 ## 🔧 MISE — Universal Version Manager
 
-Replaces Volta, nvm, rbenv, sdkman and rustup with a single `.mise.toml` at the repo root:
+Replaces Volta, nvm, rbenv, sdkman and rustup. Config lives in `.config/mise/config.toml` (symlinked by Stow):
 
 ```toml
 [tools]
@@ -202,9 +227,6 @@ node = "lts"
 rust = "latest"
 ruby = "3.3"
 java = "temurin-21"
-
-[settings]
-fetch_remote_versions_timeout = 60
 ```
 
 ```bash
@@ -223,12 +245,14 @@ mise use node@22      # switch a specific version
 - **Completion**: Carapace (bridges zsh, fish, bash)
 - **Navigation**: Zoxide
 
-Config files (all symlinked by Ansible):
+Config files (all symlinked via Stow):
 
 - `~/.config/nushell/config.nu`
 - `~/.config/nushell/env.nu`
 - `~/.config/nushell/secrets.nu`
 - `~/.config/starship/starship.toml`
+
+NuShell on macOS loads its entry points from `~/Library/Application Support/nushell/` — these are generated by Ansible and source the real configs from dotfiles.
 
 ---
 
@@ -239,7 +263,7 @@ Config files (all symlinked by Ansible):
 - Opacity: `0.9`
 - Config: `~/Library/Application Support/com.mitchellh.ghostty/config`
 
-The config is a **symlink** managed by Ansible — no manual `ln -s` needed.
+The config is a **symlink** managed by the `ghostty` Ansible role — no manual `ln -s` needed.
 
 ---
 
@@ -248,16 +272,17 @@ The config is a **symlink** managed by Ansible — no manual `ln -s` needed.
 - Framework: [LazyVim](https://www.lazyvim.org/)
 - Plugin manager: [lazy.nvim](https://github.com/folke/lazy.nvim)
 
-| Plugin | Role |
-|---|---|
-| `conform.nvim` | Autoformat (biome → prettier fallback) |
-| `nvim-lint` | Linting |
-| `nvim-treesitter` | Syntax highlighting |
-| `telescope.nvim` | Fuzzy finder |
-| `mini.nvim` | UI & utilities |
-| `lualine.nvim` | Statusline |
+| Plugin            | Role                                                    |
+| ----------------- | ------------------------------------------------------- |
+| `conform.nvim`    | Autoformat (eslint_d → biome → prettier, project-aware) |
+| `nvim-treesitter` | Syntax highlighting                                     |
+| `telescope.nvim`  | Fuzzy finder                                            |
+| `mini.nvim`       | UI & utilities                                          |
+| `lualine.nvim`    | Statusline                                              |
 
-**Formatter logic (Conform):** defaults to `biome`, falls back to `prettier` if a config file is detected in the project.
+**Formatter logic (Conform):** detects project tooling at save time — `eslint_d` if `eslint.config.mjs` found, `biome` if `biome.json` found, `prettier` otherwise.
+
+**ESLint fix on save:** `LspEslintFixAll` runs after formatting via a `BufWritePre` autocmd — handles import sorting, alphabetical rules, and all fixable ESLint rules.
 
 ---
 
@@ -278,11 +303,11 @@ The config is a **symlink** managed by Ansible — no manual `ln -s` needed.
 
 ## 🧩 CLI Utilities
 
-| Tool | Purpose |
-|---|---|
-| [ripgrep](https://github.com/BurntSushi/ripgrep) | Fast grep alternative |
-| [fzf](https://github.com/junegunn/fzf) | Fuzzy finder |
-| [bat](https://github.com/sharkdp/bat) | Better `cat` with syntax highlighting |
-| [eza](https://github.com/eza-community/eza) | Better `ls` with git integration |
-| [fd](https://github.com/sharkdp/fd) | Better `find` |
-| [watchman](https://facebook.github.io/watchman/) | File watcher |``
+| Tool                                             | Purpose                               |
+| ------------------------------------------------ | ------------------------------------- |
+| [ripgrep](https://github.com/BurntSushi/ripgrep) | Fast grep alternative                 |
+| [fzf](https://github.com/junegunn/fzf)           | Fuzzy finder                          |
+| [bat](https://github.com/sharkdp/bat)            | Better `cat` with syntax highlighting |
+| [eza](https://github.com/eza-community/eza)      | Better `ls` with git integration      |
+| [fd](https://github.com/sharkdp/fd)              | Better `find`                         |
+| [watchman](https://facebook.github.io/watchman/) | File watcher                          |
