@@ -27,5 +27,5 @@
     chdir: "{{ home }}"
   environment:
     HOME: "{{ home }}"
-    PATH: "{{ homebrew_bin }}:{{ ansible_env.PATH }}"
+    PATH: "{{ homebrew_bin }}:{{ ansible_facts['env']['PATH'] }}"
   changed_when: true

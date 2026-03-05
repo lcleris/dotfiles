@@ -1,7 +1,6 @@
 dotfiles_path: "{{ lookup('env', 'DOTFILES_PATH') | default(lookup('env', 'HOME') + '/dotfiles', true) }}"
 
-home: "{{ ansible_env.HOME }}"
-# ansible_facts["architecture"] replaces deprecated ansible_architecture
+home: "{{ ansible_facts['env']['HOME'] }}"
 homebrew_prefix: "{{ '/opt/homebrew' if ansible_facts['architecture'] == 'arm64' else '/usr/local' }}"
 homebrew_bin: "{{ homebrew_prefix }}/bin"
 
