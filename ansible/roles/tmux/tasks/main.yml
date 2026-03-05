@@ -3,18 +3,6 @@
     name: tmux
     state: present
 
-- name: Remove existing tmux config symlink
-  file:
-    path: "{{ home }}/.config/tmux"
-    state: absent
-
-- name: Symlink tmux config → dotfiles
-  file:
-    src: "{{ dotfiles_path }}/.config/tmux"
-    dest: "{{ home }}/.config/tmux"
-    state: link
-    force: true
-
 - name: Create TPM directory
   file:
     path: "{{ home }}/.tmux/plugins/tpm"

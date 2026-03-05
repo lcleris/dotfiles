@@ -12,18 +12,6 @@
     - carapace
     - starship
 
-- name: Remove existing nushell config symlink
-  file:
-    path: "{{ home }}/.config/nushell"
-    state: absent
-
-- name: Symlink nushell config → dotfiles
-  file:
-    src: "{{ dotfiles_path }}/.config/nushell"
-    dest: "{{ home }}/.config/nushell"
-    state: link
-    force: true
-
 - name: Create Application Support/nushell directory
   file:
     path: "{{ home }}/Library/Application Support/nushell"
@@ -69,11 +57,6 @@
   shell: "{{ homebrew_bin }}/carapace _carapace nushell > {{ home }}/.cache/carapace/init.nu"
   args:
     creates: "{{ home }}/.cache/carapace/init.nu"
-
-- name: Generate mise.nu activation file
-  shell: "{{ homebrew_bin }}/mise activate nu > {{ ansible_env.HOME }}/.config/nushell/mise.nu"
-  args:
-    creates: "{{ ansible_env.HOME }}/.config/nushell/mise.nu"
 
 - name: Check current shell
   shell: "echo $SHELL"

@@ -5,14 +5,12 @@
     - group_vars/all.yml
 
   roles:
-    - { role: base,     tags: ["base", "always"] }
+    - { role: base, tags: ["base", "always"] }
     - { role: homebrew, tags: ["homebrew"] }
-    - { role: mise,     tags: ["mise"] }
-    - { role: fonts,    tags: ["fonts"] }
-    - { role: ghostty,  tags: ["ghostty"] }
-    - { role: nushell,  tags: ["nushell"] }
-    - { role: starship, tags: ["starship"] }
-    - { role: zellij,   tags: ["zellij"] }
-    - { role: tmux,     tags: ["tmux"] }
-    - { role: nvim,     tags: ["nvim"] }
-    - { role: secrets,  tags: ["secrets"] }
+    - { role: mise, tags: ["mise"] }
+    - { role: fonts, tags: ["fonts"] }
+    - { role: ghostty, tags: ["ghostty"] }
+    - { role: nushell, tags: ["nushell"] }
+    - { role: tmux, tags: ["tmux"] }
+    - { role: secrets, tags: ["secrets"] }
+    - { role: stow, tags: ["stow"] }

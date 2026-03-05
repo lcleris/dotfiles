@@ -26,8 +26,6 @@ homebrew_packages:
 
 homebrew_casks:
   - ghostty
-  - font-jetbrains-mono-nerd-font
-  - font-plemol-jp-console-nerd-font
 
 mise_tools:
   node: "lts"

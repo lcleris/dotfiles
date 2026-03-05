@@ -14,14 +14,4 @@
     path: "{{ home }}/Library/Application Support/com.mitchellh.ghostty"
     state: directory
 
-- name: Remove existing Ghostty config
-  file:
-    path: "{{ home }}/Library/Application Support/com.mitchellh.ghostty/config"
-    state: absent
 
-- name: Symlink Ghostty config → dotfiles
-  file:
-    src: "{{ dotfiles_path }}/.config/ghostty/config"
-    dest: "{{ home }}/Library/Application Support/com.mitchellh.ghostty/config"
-    state: link
-    force: true

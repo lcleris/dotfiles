@@ -1,0 +1,30 @@
+- name: Install stow via Homebrew
+  homebrew:
+    name: stow
+    state: present
+
+- name: Remove existing non-stow symlinks in ~/.config
+  file:
+    path: "{{ home }}/.config/{{ item }}"
+    state: absent
+  loop:
+    - nushell
+    - nvim
+    - starship
+    - tmux
+    - zellij
+    - ghostty
+    - fish
+
+- name: Run stow to symlink dotfiles/.config → ~/.config
+  command: >
+    stow
+    --dir={{ dotfiles_path }}
+    --target={{ home }}/.config
+    --restow
+    --adopt
+    .config
+  args:
+    chdir: "{{ dotfiles_path }}"
+  register: stow_result
+  changed_when: stow_result.rc == 0
