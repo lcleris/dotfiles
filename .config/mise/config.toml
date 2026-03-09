@@ -5,7 +5,7 @@
 #   mise x -- node --version → exécuter avec les outils activés
 
 [tools]
-node = "lts"
+node = "latest"
 rust = "latest"
 ruby = "3.3"
 java = "temurin-21"
