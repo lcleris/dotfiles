@@ -202,7 +202,7 @@ $env.config = {
         external: {
             enable: true # set to false to prevent nushell looking into $env.PATH to find more suggestions, `false` recommended for WSL users as this look up may be very slow
             max_results: 100 # setting it lower can improve completion performance at the cost of omitting some options
-            completer: null # check 'carapace_completer' above as an example
+            completer: null # carapace provides completions via init.nu
         }
         use_ls_colors: true # set this to true to enable file/path/directory completions using LS_COLORS
     }
@@ -933,9 +933,18 @@ alias gre = git reset
 alias masdocker = docker compose -f ~/Desktop/masana-backend/services/masana-webapi/docker-compose.local.yml
 
 source ~/.config/nushell/env.nu
-source ~/.zoxide.nu
-source $"($nu.cache-dir)/carapace.nu"
-use ~/.cache/starship/init.nu
+
+if ($"($env.HOME)/.zoxide.nu" | path exists) {
+  source ~/.zoxide.nu
+}
+
+if ($"($env.HOME)/.cache/carapace/init.nu" | path exists) {
+  source ~/.cache/carapace/init.nu
+}
+
+if ($"($env.HOME)/.cache/starship/init.nu" | path exists) {
+  use ~/.cache/starship/init.nu *
+}
 
 let ruby_ver = "3.4.0"
 let gem_home = ($env.HOME | path join ".gem" "ruby" $ruby_ver)

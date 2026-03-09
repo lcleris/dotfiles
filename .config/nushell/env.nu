@@ -56,18 +56,30 @@ $env.NU_PLUGIN_DIRS = [
 
 # ─── MISE activation ──────────────────────────────────────────────────────────
 let mise_path = ($nu.default-config-dir | path join mise.nu)
-^mise activate nu | save $mise_path --force
+if not ($mise_path | path exists) {
+  ^mise activate nu | save $mise_path --force
+}
 
 # ─── Init tools ───────────────────────────────────────────────────────────────
-mkdir ~/.cache/starship
-starship init nu | save --force ~/.cache/starship/init.nu
+# Use ~/.cache for consistency with ansible
+let cache_dir = $"($env.HOME)/.cache"
 
-mkdir ~/.cache/carapace
-carapace _carapace nushell | save --force ~/.cache/carapace/init.nu
+# Ensure cache directories exist
+try { mkdir $"($cache_dir)/starship" }
+try { mkdir $"($cache_dir)/carapace" }
 
-zoxide init nushell | save --force ~/.zoxide.nu
+# Generate init files only if they don't exist (to avoid timeouts on every session)
+if not ($"($cache_dir)/starship/init.nu" | path exists) {
+  ^starship init nu | save --force $"($cache_dir)/starship/init.nu"
+}
+
+if not ($"($cache_dir)/carapace/init.nu" | path exists) {
+  ^carapace _carapace nushell | save --force $"($cache_dir)/carapace/init.nu"
+}
+
+let zoxide_init = $"($env.HOME)/.zoxide.nu"
+if not ($zoxide_init | path exists) {
+  ^zoxide init nushell | save --force $zoxide_init
+}
 
 source ~/.config/nushell/secrets.nu
-
-# ─── Load carapace's completions ─────────────────────────────────────────
-source $"($nu.cache-dir)/carapace.nu"
