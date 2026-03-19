@@ -77,9 +77,6 @@ if not ($"($cache_dir)/carapace/init.nu" | path exists) {
   ^carapace _carapace nushell | save --force $"($cache_dir)/carapace/init.nu"
 }
 
-let zoxide_init = $"($env.HOME)/.zoxide.nu"
-if not ($zoxide_init | path exists) {
-  ^zoxide init nushell | save --force $zoxide_init
-}
-
 source ~/.config/nushell/secrets.nu
+zoxide init nushell | save -f ~/.zoxide.nu
+source ~/.zoxide.nu
