@@ -9,7 +9,7 @@ macos-option-as-alt = left
 shell-integration-features = no-cursor
 macos-titlebar-style = tabs
 window-padding-x = 10
-window-padding-y = 0
+window-padding-y = 10
 
 keybind = ctrl+a>a=toggle_quick_terminal
 quick-terminal-position = top
