@@ -12,6 +12,7 @@ java = "temurin-21"
 "npm:commitizen" = "latest"
 "npm:nx" = "latest"
 "npm:npq" = "latest"
+bun = "latest"
 
 [settings]
 auto_install = true
