@@ -1,0 +1,69 @@
+// Zed settings
+//
+// For information on how to configure Zed, see the Zed
+// documentation: https://zed.dev/docs/configuring-zed
+//
+// To see all of Zed's default settings without changing your
+// custom settings, run `zed: open default settings` from the
+// command palette (cmd-shift-p / ctrl-shift-p)
+{
+  "vim_mode": true,
+  "cursor_blink": false,
+  "cursor_shape": "block",
+  "icon_theme": {
+    "mode": "system",
+    "light": "Zed (Default)",
+    "dark": "Catppuccin Macchiato",
+  },
+  "ui_font_size": 16,
+  "buffer_font_size": 15,
+  "theme": {
+    "mode": "system",
+    "light": "One Light",
+    "dark": "Tokyo Night",
+  },
+  "experimental.theme_overrides": {
+    "background.appearance": "blurred",
+    "background": "#303446e0",
+    "status_bar.background": "#303446e0",
+    "title_bar.background": "#303446e0",
+    "elevated_surface.background": "#303446e0",
+    "surface.background": "#303446e0",
+    "editor.background": "#00000000",
+    "editor.gutter.background": "#00000000",
+    "editor.line_number": "#b5bfe299",
+    "editor.active_line_number": "#8caaee",
+    "editor.active_line.background": "#51576d40",
+    "editor.indent_guide": "#8caaee1a",
+    "editor.indent_guide_active": "#8caaee33",
+
+    "border": "#73799440",
+    "border.variant": "#73799420",
+    "hint.background": "#414559cc",
+
+    "tab_bar.background": "#00000000",
+    "tab.active_background": "#8caaee20",
+    "tab.inactive_background": "#00000000",
+    "element.selected": "#8caaee20",
+
+    "panel.background": "#00000000",
+    "panel.indent_guide": "#8caaee12",
+    "panel.indent_guide_hover": "#8caaee16",
+    "panel.indent_guide_active": "#8caaee1a",
+    "panel.focused_border": "#00000000",
+
+    "toolbar.background": "#00000000",
+    "terminal.background": "#00000000",
+    "scrollbar.track.background": "#00000000",
+    "scrollbar.track.border": "#00000000",
+    "scrollbar.thumb.background": "#8caaee20",
+
+    "ghost_element.background": "#8caaee05",
+    "ghost_element.hover": "#8caaee10",
+    "ghost_element.active": "#8caaee15",
+    "ghost_element.selected": "#8caaee20",
+    "drop_target.background": "#8caaee20",
+    "element.hover": "#8caaee10",
+    "editor.highlighted_line.background": "#8caaee25",
+  },
+}

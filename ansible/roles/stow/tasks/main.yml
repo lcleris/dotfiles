@@ -15,6 +15,7 @@
     - zellij
     - ghostty
     - fish
+    - zed
 
 - name: Run stow to symlink dotfiles/.config → ~/.config
   command: >
