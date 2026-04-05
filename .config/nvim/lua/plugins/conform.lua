@@ -7,24 +7,28 @@ return {
 
     formatters_by_ft = {
       javascript = {
+        "oxfmt",
         "biome",
         "prettier",
         stop_after_first = true,
         lsp_format = "fallback",
       },
       typescript = {
+        "oxfmt",
         "biome",
         "prettier",
         stop_after_first = true,
         lsp_format = "fallback",
       },
       javascriptreact = {
+        "oxfmt",
         "biome",
         "prettier",
         stop_after_first = true,
         lsp_format = "fallback",
       },
       typescriptreact = {
+        "oxfmt",
         "biome",
         "prettier",
         stop_after_first = true,
@@ -35,6 +39,12 @@ return {
     },
 
     formatters = {
+      oxfmt = {
+        command = require("conform.util").from_node_modules("oxfmt"),
+        args = { "$FILENAME" },
+        stdin = false,
+        cwd = require("conform.util").root_file({ ".oxfmtrc.json", ".oxfmtrc.jsonc" }),
+      },
       biome = {
         require_cwd = true,
         command = "biome",
