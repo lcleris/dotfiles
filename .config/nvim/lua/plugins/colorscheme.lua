@@ -23,6 +23,8 @@ return {
           rrggbb = true,
           rgb_fn = true,
           hsl_fn = true,
+          oklch = true,
+          oklab = true,
           css = true,
           css_fn = true, -- enables css color() + modern funcs like oklch()
           names = false,
