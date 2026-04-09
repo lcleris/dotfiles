@@ -8,7 +8,7 @@ return {
     dashboard = { enabled = false },
     explorer = {
       enabled = true,
-      sources = { files = { hidden = true, ignored = false }, hidden = true, ignored = true },
+      sources = { files = { hidden = true, ignored = true }, hidden = true, ignored = true },
     },
     image = {},
     indent = { enabled = true },
@@ -21,12 +21,28 @@ return {
       sources = {
         files = {
           hidden = true,
-          ignored = false,
+          ignored = true,
+          exclude = { "node_modules", ".git", "dist", "coverage" },
+        },
+        grep = {
+          hidden = true,
+          ignored = true,
+          exclude = { "node_modules", "dist", "coverage" },
+        },
+        grep_word = {
+          hidden = true,
+          ignored = true,
+          exclude = { "node_modules", "dist", "coverage" },
+        },
+        smart = {
+          hidden = true,
+          ignored = true,
+          exclude = { "node_modules", ".git", "dist", "coverage" },
         },
       },
       enable = true,
       hidden = true,
-      ignored = false,
+      ignored = true,
     },
     quickfile = { enabled = true },
     scope = { enabled = true },
