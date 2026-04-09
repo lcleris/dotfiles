@@ -7,6 +7,16 @@
 // custom settings, run `zed: open default settings` from the
 // command palette (cmd-shift-p / ctrl-shift-p)
 {
+  "agent_servers": {
+    "claude-acp": {
+      "type": "registry"
+    }
+  },
+  "vim": {
+    "cursor_shape": {
+      "insert": "bar"
+    }
+  },
   "vim_mode": true,
   "cursor_blink": false,
   "cursor_shape": "block",
