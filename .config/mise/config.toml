@@ -7,7 +7,7 @@
 [tools]
 node = "latest"
 rust = "latest"
-ruby = "3.3"
+ruby = "3.4.5"
 java = "temurin-21"
 "npm:commitizen" = "latest"
 "npm:nx" = "latest"
