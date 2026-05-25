@@ -13,6 +13,7 @@ java = "temurin-21"
 "npm:nx" = "latest"
 "npm:npq" = "latest"
 bun = "latest"
+pnpm = "latest"
 
 [settings]
 auto_install = true

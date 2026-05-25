@@ -15,12 +15,6 @@
     path: "{{ home }}/.cache/mise"
     state: directory
 
-- name: Deploy .mise.toml from template
-  template:
-    src: mise.toml.j2
-    dest: "{{ home }}/.mise.toml"
-    backup: true
-
 - name: Install all tools via mise
   command: "{{ homebrew_bin }}/mise install --yes"
   args:

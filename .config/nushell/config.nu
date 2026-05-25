@@ -929,9 +929,6 @@ alias gcoall = git checkout -- .
 alias gr = git remote
 alias gre = git reset
 
-# Masana Backend only (ToRemove when no longer at masana)
-alias masdocker = docker compose -f ~/Desktop/masana-backend/services/masana-webapi/docker-compose.local.yml
-
 source ~/.config/nushell/env.nu
 
 if ($"($env.HOME)/.zoxide.nu" | path exists) {
