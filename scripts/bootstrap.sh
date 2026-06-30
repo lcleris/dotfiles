@@ -219,6 +219,41 @@ run_ansible() {
   success "Playbook OK"
 }
 
+# ─── Nushell ──────────────────────────────────────────────────────────────────
+setup_nushell() {
+  step "Nushell"
+
+  local nu_bin="/opt/homebrew/bin/nu"
+
+  if ! command_exists nu; then
+    log "Installing Nushell..."
+    brew install nushell
+  fi
+  success "Nushell $(nu --version)"
+
+  # Ensure nushell config directory exists
+  mkdir -p "${HOME}/.config/nushell"
+  success "~/.config/nushell directory OK"
+
+  # Add nu to /etc/shells if not already listed
+  if ! grep -qF "$nu_bin" /etc/shells; then
+    log "Adding ${nu_bin} to /etc/shells (requires sudo)..."
+    echo "$nu_bin" | sudo tee -a /etc/shells >/dev/null
+    success "${nu_bin} added to /etc/shells"
+  fi
+
+  # Set nushell as default shell via dscl
+  local current_shell
+  current_shell=$(dscl . -read "/Users/${USER}" UserShell 2>/dev/null | awk '{print $2}')
+  if [[ "$current_shell" != "$nu_bin" ]]; then
+    log "Setting nushell as default shell (requires sudo)..."
+    sudo dscl . -create "/Users/${USER}" UserShell "$nu_bin"
+    success "Default shell → ${nu_bin}"
+  else
+    success "Default shell already set to nushell"
+  fi
+}
+
 # ─── Post-install ─────────────────────────────────────────────────────────────
 post_install() {
   step "Post-install"
@@ -262,6 +297,7 @@ main() {
   install_mise
   install_ansible
   clone_dotfiles
+  setup_nushell
   run_ansible
   post_install
 }
