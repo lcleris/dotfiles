@@ -21,6 +21,7 @@ homebrew_packages:
   - eza
   - neovim
   - watchman
+  - btop
   # - tmux  # uncomment if you want tmux managed by Ansible
 
 homebrew_casks:
