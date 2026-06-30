@@ -907,8 +907,6 @@ alias lts = eza --tree --level=2 --icons --git
 alias v = nvim
 alias vfind = v (fzf --preview="bat --color=always {}")
 
-alias npm = npq-hero
-
 # Git
 alias gbr = gbr_safe
 alias lg = lazygit
@@ -943,18 +941,17 @@ if ($"($env.HOME)/.cache/starship/init.nu" | path exists) {
   use ~/.cache/starship/init.nu *
 }
 
-let ruby_ver = "3.4.0"
-let gem_home = ($env.HOME | path join ".gem" "ruby" $ruby_ver)
-let gem_bin = ($gem_home | path join "bin")
+# let gem_home = ($env.HOME | path join ".gem" "ruby" $ruby_ver)
+# let gem_bin = ($gem_home | path join "bin")
 
 # Set GEM paths
-$env.GEM_HOME = $gem_home
-$env.GEM_PATH = $gem_home
+# $env.GEM_HOME = $gem_home
+# $env.GEM_PATH = $gem_home
 
 # Add gem bin to PATH if it exists
-if ($gem_bin | path exists) {
-  $env.PATH = ($env.PATH | prepend $gem_bin)
-}
+# if ($gem_bin | path exists) {
+#   $env.PATH = ($env.PATH | prepend $gem_bin)
+# }
 
 # ─── MISE activation ──────────────────────────────────────────────────────────
 let mise_path = ($nu.default-config-dir | path join mise.nu)

@@ -69,8 +69,8 @@
   register: current_shell
   changed_when: false
 
-- name: Set nushell as default shell
-  command: "chsh -s {{ homebrew_bin }}/nu"
-  changed_when: false
-  when: current_shell.stdout != homebrew_bin + "/nu"
-  become: false
+#- name: Set nushell as default shell
+#  become: true
+#  ansible.builtin.command:
+#    cmd: dscl . -create /Users/{{ ansible_user_id }} UserShell /opt/homebrew/bin/nu
+#  changed_when: current_shell.stdout != "/opt/homebrew/bin/nu"

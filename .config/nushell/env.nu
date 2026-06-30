@@ -54,6 +54,9 @@ $env.NU_PLUGIN_DIRS = [
   ($nu.default-config-dir | path join 'plugins')
 ]
 
+# ---- GPG Activation Permanent ----
+$env.GPG_TTY = (tty)
+
 # ─── MISE activation ──────────────────────────────────────────────────────────
 let mise_path = ($nu.default-config-dir | path join mise.nu)
 if not ($mise_path | path exists) {

@@ -10,10 +10,6 @@ command_timeout = 1000
 # vicmd_symbol = "[N] >>>"
 success_symbol = '[➜](bold green)'
 
-[directory.substitutions]
-'~/Desktop/masana-frontend' = 'masana-frontend'
-'~/Desktop/masana-backend' = 'masana-backend'
-
 [git_branch]
 format = '[$symbol$branch(:$remote_branch)]($style)'
 
