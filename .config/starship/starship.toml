@@ -11,16 +11,16 @@ command_timeout = 1000
 success_symbol = '[➜](bold green)'
 
 [git_branch]
-format = '[$symbol$branch(:$remote_branch)]($style)'
+format = '[$symbol$branch(:$remote_branch)]($style) '
 
 [docker_context]
-disabled = true
+disabled = false
 
 [memory_usage]
 disabled = false
 threshold = 0
 symbol = "💾 "
-format = " via $symbol[$ram]($style) "
+format = "via $symbol[$ram]($style) "
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
