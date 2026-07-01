@@ -1,0 +1,17 @@
+jira_api_base_url: "https://vertuoza.atlassian.net"
+jira_base_url: "https://vertuoza.atlassian.net"
+jira_api_username: "loan.cleris@vertuoza.com"
+# jira_api_token is loaded from the JIRA_API_TOKEN environment variable (macOS Keychain)
+
+cloud: true
+search_results_per_page: 30
+active_sprint_on_startup: false
+on_start_up_only_fetch_projects: true
+confirm_before_quit: false
+show_issue_web_links: true
+ignore_users_without_email: true
+enable_images_support: true
+enable_recent_history: true
+enable_goto: true
+log_level: "WARNING"
+theme: catppuccin-mocha

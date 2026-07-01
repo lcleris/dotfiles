@@ -22,6 +22,12 @@ if ($akka_key | is-not-empty) {
   $env.AKKA_LICENSE_KEY = $akka_key
 }
 
+# ─── Jira ────────────────────────────────────────────────────────────────────
+let jira_token = (keychain-get "JIRA_API_TOKEN")
+if ($jira_token | is-not-empty) {
+  $env.JIRA_API_TOKEN = $jira_token
+}
+
 # ─── Ajouter d'autres secrets ici ─────────────────────────────────────────
 # Exemple :
 # let gh_token = (keychain-get "GITHUB_TOKEN")

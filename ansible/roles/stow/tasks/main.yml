@@ -16,6 +16,7 @@
     - ghostty
     - fish
     - zed
+    - jiratui
 
 - name: Run stow to symlink dotfiles/.config → ~/.config
   command: >
