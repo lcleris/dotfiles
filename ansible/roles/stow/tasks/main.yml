@@ -30,3 +30,24 @@
     chdir: "{{ dotfiles_path }}"
   register: stow_result
   changed_when: stow_result.rc == 0
+
+- name: Remove ~/.claude/commands if it is a real directory (not a stow symlink)
+  shell: |
+    if [ -d "{{ home }}/.claude/commands" ] && [ ! -L "{{ home }}/.claude/commands" ]; then
+      rm -rf "{{ home }}/.claude/commands"
+    fi
+  args:
+    executable: /bin/sh
+
+- name: Run stow to symlink dotfiles/.claude → ~/.claude
+  command: >
+    stow
+    --dir={{ dotfiles_path }}
+    --target={{ home }}
+    --restow
+    --adopt
+    .claude
+  args:
+    chdir: "{{ dotfiles_path }}"
+  register: stow_claude_result
+  changed_when: stow_claude_result.rc == 0
