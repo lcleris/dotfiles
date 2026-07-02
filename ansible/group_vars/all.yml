@@ -22,14 +22,10 @@ homebrew_packages:
   - neovim
   - watchman
   - btop
-  # - tmux  # uncomment if you want tmux managed by Ansible
 
 homebrew_casks:
   - ghostty
 
 mise_tools:
-  node: "lts"
-  rust: "latest"
-  ruby: "3.3"
-  java: "temurin-21"
-  # gradle: "latest"  # uncomment if needed
+  node: "latest"
+  bun: "latest"

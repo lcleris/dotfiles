@@ -13,7 +13,6 @@ Personal macOS setup, fully managed and deployed via Ansible + GNU Stow. Not int
 | [Starship](https://starship.rs/)                    | Prompt                                              |
 | [Ghostty](https://ghostty.org/)                     | Terminal emulator                                   |
 | [Zellij](https://zellij.dev/)                       | Terminal multiplexer                                |
-| [tmux](https://github.com/tmux/tmux)                | Terminal multiplexer (legacy / coexistence)         |
 | [Neovim](https://neovim.io/)                        | Editor (LazyVim-based)                              |
 | [Carapace](https://github.com/rsteube/carapace-bin) | Multi-shell completion                              |
 | [Zoxide](https://github.com/ajeetdsouza/zoxide)     | Smart directory navigation                          |
@@ -184,7 +183,6 @@ ansible/
     ├── secrets/           # Keychain provisioning
     ├── nushell/           # Shell install + init files (env.nu / config.nu)
     ├── ghostty/           # Terminal config symlink → Library/Application Support
-    ├── tmux/              # tmux + TPM bootstrap
     ├── fonts/             # Nerd Fonts directory check
     └── stow/              # GNU Stow — creates all ~/.config symlinks
 ```
@@ -204,7 +202,7 @@ ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff
 
 ### Available tags
 
-`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `tmux` · `stow`
+`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `stow`
 
 ### First run — install Galaxy dependencies
 
@@ -222,17 +220,15 @@ Replaces Volta, nvm, rbenv, sdkman and rustup. Config lives in `.config/mise/con
 
 ```toml
 [tools]
-node = "lts"
-rust = "latest"
-ruby = "3.3"
-java = "temurin-21"
+node = "latest"
+bun = "latest"
 ```
 
 ```bash
 mise install          # install all tools
 mise ls               # list installed versions
 mise upgrade          # upgrade all tools to latest
-mise use node@22      # switch a specific version
+mise use node@26      # switch a specific version
 ```
 
 ---
@@ -291,12 +287,6 @@ The config is a **symlink** managed by the `ghostty` Ansible role — no manual 
 
 - Config: `~/.config/zellij/config.kdl`
 - Theme: `catppuccin-mocha`
-
-### tmux (coexistence)
-
-- Config: `~/.config/tmux/tmux.conf`
-- Plugins managed by [TPM](https://github.com/tmux-plugins/tpm) — **not versioned in this repo**
-- After install: `Prefix + I` to install plugins
 
 ---
 
