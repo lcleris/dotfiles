@@ -5,10 +5,9 @@
 #   mise x -- node --version → exécuter avec les outils activés
 
 [tools]
-node = "latest"
-rust = "latest"
 bun = "latest"
 pnpm = "latest"
+node = "latest"
 
 [settings]
 auto_install = true
