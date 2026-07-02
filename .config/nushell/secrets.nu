@@ -16,12 +16,6 @@ def keychain-get [service: string] {
   }
 }
 
-# ─── Akka ────────────────────────────────────────────────────────────────────
-let akka_key = (keychain-get "AKKA_LICENSE_KEY")
-if ($akka_key | is-not-empty) {
-  $env.AKKA_LICENSE_KEY = $akka_key
-}
-
 # ─── Jira ────────────────────────────────────────────────────────────────────
 let jira_token = (keychain-get "JIRA_API_TOKEN")
 if ($jira_token | is-not-empty) {
