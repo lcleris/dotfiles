@@ -152,7 +152,6 @@ dotfiles/.config/mise/     →  ~/.config/mise
 dotfiles/.config/starship/ →  ~/.config/starship
 dotfiles/.config/tmux/     →  ~/.config/tmux
 dotfiles/.config/zellij/   →  ~/.config/zellij
-dotfiles/.config/fish/     →  ~/.config/fish
 ```
 
 Stow is run automatically at the end of the Ansible playbook (`stow` role). To re-apply manually:

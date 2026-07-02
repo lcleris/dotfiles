@@ -9,19 +9,9 @@
 .env.local
 *.pem
 *.key
-.config/nushell/history.txt
-
-# Fish (legacy — migré vers NuShell)
-.config/fish/conf.d/firebase.fish
-.config/fish/conf.d/akka.fish
-.config/fish/conf.d/scala.fish
-.config/fish/conf.d/volta.fish
 
 # NuShell history (données locales)
 .config/nushell/history.txt
-
-# Tmux plugins — gérés par TPM, pas versionnés
-.config/tmux/plugins/
 
 # Caches
 .cache/
