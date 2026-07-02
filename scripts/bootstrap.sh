@@ -39,7 +39,8 @@ command_exists() { command -v "$1" &>/dev/null; }
 # Format: "KEYCHAIN_SERVICE_NAME:Description shown to the user"
 # Add new secrets here — they will be prompted before installation begins
 REQUIRED_SECRETS=(
-  "AKKA_LICENSE_KEY:Akka License Key (Lightbend)"
+  # "AKKA_LICENSE_KEY:Akka License Key (Lightbend)"
+  "JIRA_API_TOKEN:Jira Token Api"
   # "GITHUB_TOKEN:GitHub Personal Access Token"  ← add more secrets here
 )
 
