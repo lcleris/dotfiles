@@ -9,6 +9,7 @@
 .env.local
 *.pem
 *.key
+.config/nushell/history.txt
 
 # Fish (legacy — migré vers NuShell)
 .config/fish/conf.d/firebase.fish
