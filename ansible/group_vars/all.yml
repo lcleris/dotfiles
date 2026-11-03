@@ -16,7 +16,6 @@ homebrew_packages:
   - starship
   - nushell
   - fish
-  - zellij
   - mise
   - ripgrep
   - fzf

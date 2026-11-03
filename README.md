@@ -13,7 +13,7 @@ Personal macOS setup, fully managed and deployed via Ansible + GNU Stow. Not int
 | [NuShell](https://www.nushell.sh/)                  | Fallback shell (kept configured, not the default)   |
 | [Starship](https://starship.rs/)                    | Prompt                                              |
 | [Ghostty](https://ghostty.org/)                     | Terminal emulator                                   |
-| [Zellij](https://zellij.dev/)                       | Terminal multiplexer                                |
+| [Rex](https://www.superlogical.com/rex/)            | Terminal multiplexer (primary)                      |
 | [Oh My Pi (omp)](https://github.com/can1357/oh-my-pi)  | AI coding agent CLI                                 |
 | [Herdr](https://herdr.dev/)                          | Agent multiplexer / persistent runtime for coding agents |
 | [Neovim](https://neovim.io/)                        | Editor (LazyVim-based)                              |
@@ -166,7 +166,7 @@ dotfiles/.config/nvim/     →  ~/.config/nvim
 dotfiles/.config/mise/     →  ~/.config/mise
 dotfiles/.config/starship/ →  ~/.config/starship
 dotfiles/.config/tmux/     →  ~/.config/tmux
-dotfiles/.config/zellij/   →  ~/.config/zellij
+dotfiles/.config/rex/      →  ~/.config/rex
 dotfiles/.config/herdr/    →  ~/.config/herdr (config.toml uniquement, voir ci-dessous)
 ```
 
@@ -382,10 +382,12 @@ The config is a **symlink** managed by the `ghostty` Ansible role — no manual 
 
 ## 🪟 Multiplexers
 
-### Zellij (primary)
+### Rex (primary)
 
-- Config: `~/.config/zellij/config.kdl`
-- Theme: `catppuccin-mocha`
+- Config: `~/.config/rex/init.lua` (symlinked from `dotfiles/.config/rex/init.lua`)
+- Migrated from the Zellij config: the Zellij modes (`locked`, `pane`, `tab`, `resize`, `scroll`, `session`, `tmux`) are Rex key modes entered with the same keys (`Ctrl g/a/t/n/s/x/b`), plus Ghostty's `cmd+arrows` pane focus and `cmd+shift+left/right` tab switching.
+- Rex itself is not installed by Ansible (the app manages its own updates). Theme and font are set in Rex Settings, not in `init.lua`.
+- Validate after editing: `rex config check`, then *Reload Config* in Rex.
 
 ---
 
