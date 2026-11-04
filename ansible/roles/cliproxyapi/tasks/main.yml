@@ -1,0 +1,61 @@
+# CLIProxyAPI : proxy local qui répartit Claude Code sur plusieurs comptes Claude.
+# config.yaml est stowé depuis le repo ; ses deux secrets (clé API, clé de management)
+# vivent dans le Keychain (rôle `secrets`) et passent par le filtre git
+# scripts/cliproxy-secrets.sh, donc le repo public ne voit que des placeholders.
+# Les tokens OAuth (~/.cli-proxy-api/claude-*.json) ne sont jamais dans le repo :
+# sur une nouvelle machine, se reconnecter avec `cliproxyapi -claude-login`.
+
+- name: Enable the git filter that keeps secrets out of the CLIProxyAPI config
+  community.general.git_config:
+    scope: local
+    repo: "{{ dotfiles_path }}"
+    name: "filter.cliproxy-secrets.{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
+    - { key: clean, value: "{{ dotfiles_path }}/scripts/cliproxy-secrets.sh clean" }
+    - { key: smudge, value: "{{ dotfiles_path }}/scripts/cliproxy-secrets.sh smudge" }
+    - { key: required, value: "true" }
+
+# Un clone frais a été extrait avant que le filtre existe : il contient encore
+# les placeholders. Le ré-extraire fait passer le smudge (Keychain → fichier).
+- name: Fill the Keychain secrets into a freshly cloned config
+  shell: |
+    f=.config/cli-proxy-api/config.yaml
+    if grep -q '__CLIPROXY_' "$f"; then rm "$f" && git checkout -- "$f" && echo smudged; fi
+  args:
+    chdir: "{{ dotfiles_path }}"
+  register: cliproxy_smudge
+  changed_when: "'smudged' in cliproxy_smudge.stdout"
+
+# Doit rester un vrai dossier : il contient les tokens OAuth et les logs.
+- name: Ensure ~/.cli-proxy-api is a real directory (only config.yaml is stowed)
+  file:
+    path: "{{ home }}/.cli-proxy-api"
+    state: directory
+    mode: "0700"
+
+- name: Run stow to symlink dotfiles/.config/cli-proxy-api → ~/.cli-proxy-api
+  command: >
+    stow
+    --dir={{ dotfiles_path }}/.config
+    --target={{ home }}/.cli-proxy-api
+    --restow
+    --adopt
+    cli-proxy-api
+  args:
+    chdir: "{{ dotfiles_path }}/.config"
+  register: stow_cliproxy_result
+  changed_when: stow_cliproxy_result.rc == 0
+
+# Le service brew lit /opt/homebrew/etc/cliproxyapi.conf (pas de -config possible).
+- name: Point the Homebrew service config at ~/.cli-proxy-api/config.yaml
+  file:
+    src: "{{ home }}/.cli-proxy-api/config.yaml"
+    dest: "{{ homebrew_prefix }}/etc/cliproxyapi.conf"
+    state: link
+    force: true
+
+- name: Start CLIProxyAPI as a login service (launchd restarts it if it crashes)
+  command: "{{ homebrew_bin }}/brew services start cliproxyapi"
+  register: cliproxy_service
+  changed_when: "'already started' not in (cliproxy_service.stdout + cliproxy_service.stderr)"

@@ -42,6 +42,8 @@ REQUIRED_SECRETS=(
   "JIRA_API_TOKEN:Jira Token Api"
   "ANTHROPIC_API_KEY:Claude api key"
   "SOPS_AGE_KEY:Age private key for sops (decrypts project .env.encrypted files)"
+  "CLIPROXY_API_KEY:CLIProxyAPI client key (access.api-keys)"
+  "CLIPROXY_MANAGEMENT_KEY:CLIProxyAPI management key (management.secret-key)"
   # "GITHUB_TOKEN:GitHub Personal Access Token"  ← add more secrets here
 )
 

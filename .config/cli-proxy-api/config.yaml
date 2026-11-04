@@ -1,0 +1,20 @@
+config-version: 8
+server:
+  host: "127.0.0.1" # keep: tailscale serve fronts it
+  port: 8317
+  trusted-proxies: ["127.0.0.1", "::1"]
+management:
+  allow-remote: false
+  secret-key: "__CLIPROXY_MANAGEMENT_KEY__"
+access:
+  api-keys:
+    - "__CLIPROXY_API_KEY__"
+routing:
+  strategy: "round-robin"
+  session-affinity: true
+  session-affinity-ttl: "1h"
+  retry:
+    request-retry: 3
+    max-retry-interval: 30
+oauth:
+  auth-dir: "~/.cli-proxy-api"

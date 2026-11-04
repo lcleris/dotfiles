@@ -24,14 +24,14 @@
     path: "{{ home }}/.config/herdr"
     state: directory
 
-- name: Run stow to symlink dotfiles/.config → ~/.config (omp excluded — stowed to its native location below)
+- name: Run stow to symlink dotfiles/.config → ~/.config (omp and cli-proxy-api excluded — stowed to their native location)
   command: >
     stow
     --dir={{ dotfiles_path }}
     --target={{ home }}/.config
     --restow
     --adopt
-    --ignore=^omp$
+    --ignore='^(omp|cli-proxy-api)$'
     .config
   args:
     chdir: "{{ dotfiles_path }}"

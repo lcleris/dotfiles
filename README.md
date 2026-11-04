@@ -174,6 +174,7 @@ A few packages live under `dotfiles/.config/` for organization but are stowed to
 
 ```
 dotfiles/.config/omp/agent/config.yml     →  ~/.omp/agent/config.yml
+dotfiles/.config/cli-proxy-api/config.yaml →  ~/.cli-proxy-api/config.yaml
 dotfiles/.claude/                          →  ~/.claude/
 ```
 
@@ -184,9 +185,10 @@ Stow is run automatically at the end of the Ansible playbook (`stow` role). To r
 ```bash
 cd ~/dotfiles
 mkdir -p ~/.config/herdr
-stow --dir=. --target=~/.config --restow --ignore='^omp$' .config
+stow --dir=. --target=~/.config --restow --ignore='^(omp|cli-proxy-api)$' .config
 stow --dir=. --target=~/.claude --restow .claude
 stow --dir=.config --target=~/.omp omp
+stow --dir=.config --target=~/.cli-proxy-api cli-proxy-api
 ```
 
 > Ghostty is the exception — its config lives in `~/Library/Application Support/com.mitchellh.ghostty/config` and is handled separately by the `ghostty` Ansible role.
@@ -214,7 +216,8 @@ ansible/
     ├── fish/              # Secondary shell install (config comes from stow)
     ├── ghostty/           # Terminal config symlink → Library/Application Support
     ├── fonts/             # Nerd Fonts directory check
-    └── stow/              # GNU Stow — ~/.config, ~/.claude, ~/.omp/agent symlinks
+    ├── stow/              # GNU Stow — ~/.config, ~/.claude, ~/.omp/agent symlinks
+    └── cliproxyapi/       # CLIProxyAPI config stow, secrets git filter, brew service
 ```
 
 ### Running the playbook manually
@@ -232,7 +235,7 @@ ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff
 
 ### Available tags
 
-`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `fish` · `stow`
+`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `fish` · `stow` · `cliproxyapi`
 
 ### First run — install Galaxy dependencies
 
@@ -358,6 +361,23 @@ The config is a **symlink** managed by the `ghostty` Ansible role — no manual 
   - Config: `~/.config/herdr/config.toml` (symlinked from `dotfiles/.config/herdr/config.toml`, theme `catppuccin`). Everything else stays commented at defaults — `herdr --default-config` regenerates a fresh reference.
   - `~/.config/herdr/` stays a **real** directory so herdr's logs live next to the symlinked config without landing in git.
   - Run it as a background service with `brew services start herdr`, or one-shot with `herdr server`. `herdr --skill` prints agent instructions for driving herdr from inside a pane.
+
+---
+
+## 🔀 CLIProxyAPI — several Claude accounts behind one endpoint
+
+[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) runs on `127.0.0.1:8317` and spreads Claude Code requests over several Claude subscriptions (`routing` in the config: round-robin + session affinity, failover when an account hits its limit).
+
+- Installed via Homebrew (`cliproxyapi` in `homebrew_packages`), run by the `cliproxyapi` role as a `brew services` login service: launchd restarts it if it crashes.
+- Config: `~/.cli-proxy-api/config.yaml` (symlinked from `dotfiles/.config/cli-proxy-api/config.yaml`). The Homebrew service reads `/opt/homebrew/etc/cliproxyapi.conf`, which the role points at that file.
+- **Secrets never reach git.** The client key (`access.api-keys`) and the management key (`management.secret-key`) live in the Keychain as `CLIPROXY_API_KEY` / `CLIPROXY_MANAGEMENT_KEY`. A git filter (`.gitattributes` → `scripts/cliproxy-secrets.sh`) swaps them for placeholders on `git add` and writes the real values back on checkout. The filter is enabled per clone by the `cliproxyapi` role (`git config filter.cliproxy-secrets.*`), so run the role before committing from a fresh clone.
+- The OAuth tokens (`~/.cli-proxy-api/claude-*.json`) and logs stay untracked in the real `~/.cli-proxy-api/` directory. On a new machine, sign in again with `cliproxyapi -claude-login` (once per account).
+
+```bash
+brew services list | grep cliproxyapi    # status
+brew services restart cliproxyapi        # restart
+cliproxyapi -claude-login                # add or re-login an account
+```
 
 ---
 

@@ -1,0 +1,2 @@
+# Secrets remplacés par des placeholders à chaque `git add` (voir scripts/cliproxy-secrets.sh)
+.config/cli-proxy-api/config.yaml filter=cliproxy-secrets
