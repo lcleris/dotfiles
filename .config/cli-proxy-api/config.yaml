@@ -16,5 +16,11 @@ routing:
   retry:
     request-retry: 3
     max-retry-interval: 30
+upstream:
+  claude:
+    header-defaults:
+      # T3 Code is real Claude Code: forward its own version headers instead of the
+      # built-in 2.1.280 baseline, which newer models (fable 5.2 needs >= 2.1.290) reject.
+      native-entrypoints: ["t3-code"]
 oauth:
   auth-dir: "~/.cli-proxy-api"
