@@ -49,3 +49,6 @@ source "$HOME/.railway/env.fish"
 # <<< railway initialize <<<
 
 eval (/opt/homebrew/bin/brew shellenv fish)
+
+# bun global bin (vercel, neonctl)
+fish_add_path "$HOME/.bun/bin"
