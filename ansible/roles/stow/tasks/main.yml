@@ -46,6 +46,17 @@
   args:
     executable: /bin/sh
 
+- name: Enable the git filter that keeps autoMode out of the committed Claude settings
+  community.general.git_config:
+    scope: local
+    repo: "{{ dotfiles_path }}"
+    name: "filter.claude-settings.{{ item.key }}"
+    value: "{{ item.value }}"
+  loop:
+    - { key: clean, value: "jq 'del(.autoMode)'" }
+    - { key: smudge, value: cat }
+    - { key: required, value: "true" }
+
 - name: Ensure ~/.claude directory exists
   file:
     path: "{{ home }}/.claude"
