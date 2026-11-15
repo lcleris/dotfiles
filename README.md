@@ -1,12 +1,12 @@
 # 🛠️ Dotfiles — Loan CLERIS
 
-Personal macOS setup, fully managed and deployed via Ansible + GNU Stow. Not intended for public use, but feel free to use it as a reference.
+Personal macOS setup, managed with a Brewfile, GNU Stow and one bootstrap script. Not intended for public use, but feel free to use it as a reference.
 
 ## ✨ Stack
 
 | Tool                                                | Role                                                |
 | --------------------------------------------------- | --------------------------------------------------- |
-| [Ansible](https://www.ansible.com/)                 | Deployment & automation                             |
+| [Homebrew Bundle](https://docs.brew.sh/Brew-Bundle-and-Brewfile) | Packages and apps (`Brewfile`)        |
 | [GNU Stow](https://www.gnu.org/software/stow/)      | Dotfiles symlink manager                            |
 | [MISE](https://mise.jdx.dev/)                       | Universal version manager (Node, Rust, Ruby, Java…) |
 | [fish](https://fishshell.com/)                      | Primary shell                                       |
@@ -30,31 +30,27 @@ One command to rule them all:
 curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
-The script runs in order: Xcode CLI Tools → Homebrew → Git → MISE → Ansible → clone repo → **collect secrets** → run playbook → install language tools.
+The script runs in order: Xcode CLI Tools → **collect secrets** → Homebrew → clone repo → `brew bundle` → login shell → stow symlinks → CLIProxyAPI → NuShell entry points → `mise install`.
 
-### Options
+### Run some steps only
+
+Each step is idempotent and can run on its own. Pass the step names as arguments:
 
 ```bash
-# Install only specific components
-ANSIBLE_TAGS="nvim,fish" bash ./scripts/bootstrap.sh
-
-# Dry-run — shows what would change, modifies nothing
-CHECK=1 bash ./scripts/bootstrap.sh
+bash ./scripts/bootstrap.sh link cliproxyapi   # re-apply symlinks
+curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash -s -- packages
 ```
 
-### MISE tasks (preferred if repo already cloned)
+Steps: `preflight` · `secrets` · `homebrew` · `clone` · `packages` · `shells` · `link` · `cliproxyapi` · `nushell` · `tools`
+
+### MISE tasks (repo already cloned)
 
 ```bash
-mise run install             # full install
-mise run setup               # mise install deps
-mise run bootstrap-dry-run   # dry-run (CHECK=1)
-mise run ansible-run         # run playbook only
-mise run ansible-check       # playbook dry-run
-mise run ansible-nvim        # deploy nvim config only
-mise run ansible-nushell     # deploy nushell config only
-mise run ansible-fish        # deploy fish config only
-mise run status              # show installed tool versions
-mise tasks                   # list all available tasks
+mise run install   # full bootstrap
+mise run stow      # re-apply the stow symlinks and the CLIProxyAPI config
+mise run brew      # install what the Brewfile lists and is missing
+mise run check     # list Brewfile entries that are not installed
+mise tasks         # list all available tasks
 ```
 
 ---
@@ -127,15 +123,6 @@ if ($my_secret | is-not-empty) {
 }
 ```
 
-**3. Add it to `ansible/roles/secrets/vars/main.yml`:**
-
-```yaml
-keychain_secrets:
-  - service: "MY_NEW_SECRET"
-    prompt: "My New Secret"
-    description: "What this secret is used for"
-```
-
 ### Manual Keychain management
 
 ```bash
@@ -165,7 +152,6 @@ dotfiles/.config/fish/     →  ~/.config/fish
 dotfiles/.config/nvim/     →  ~/.config/nvim
 dotfiles/.config/mise/     →  ~/.config/mise
 dotfiles/.config/starship/ →  ~/.config/starship
-dotfiles/.config/tmux/     →  ~/.config/tmux
 dotfiles/.config/rex/      →  ~/.config/rex
 dotfiles/.config/herdr/    →  ~/.config/herdr (config.toml uniquement, voir ci-dessous)
 ```
@@ -178,72 +164,24 @@ dotfiles/.config/cli-proxy-api/config.yaml →  ~/.cli-proxy-api/config.yaml
 dotfiles/.claude/                          →  ~/.claude/
 ```
 
-Only the tracked files/dirs get symlinked — untracked runtime state next to them (`~/.omp/agent/agent.db`, `~/.omp/agent/sessions/`, etc.) is left as real files on disk, never pulled into git. Same idea for **herdr**: `~/.config/herdr` is kept as a real directory (created by the `stow` role before stowing) so only `config.toml` becomes a symlink and herdr's logs (`herdr.log`, `herdr-client.log`, `herdr-server.log`) stay out of the repo.
+Only the tracked files/dirs get symlinked — untracked runtime state next to them (`~/.omp/agent/agent.db`, `~/.omp/agent/sessions/`, etc.) is left as real files on disk, never pulled into git. Same idea for **herdr**: `~/.config/herdr` is kept as a real directory (created by `bootstrap.sh link` before stowing) so only `config.toml` becomes a symlink and herdr's logs (`herdr.log`, `herdr-client.log`, `herdr-server.log`) stay out of the repo.
 
-Stow is run automatically at the end of the Ansible playbook (`stow` role). To re-apply manually:
+`bootstrap.sh` runs stow during a full install. To re-apply it:
 
 ```bash
-cd ~/dotfiles
-mkdir -p ~/.config/herdr
-stow --dir=. --target=~/.config --restow --ignore='^(omp|cli-proxy-api)$' .config
-stow --dir=. --target=~/.claude --restow .claude
-stow --dir=.config --target=~/.omp omp
-stow --dir=.config --target=~/.cli-proxy-api cli-proxy-api
+mise run stow   # = bash scripts/bootstrap.sh link cliproxyapi
 ```
-
-> Ghostty is the exception — its config lives in `~/Library/Application Support/com.mitchellh.ghostty/config` and is handled separately by the `ghostty` Ansible role.
 
 ---
 
-## 🔄 Ansible
+## 📦 Packages: Brewfile
 
-### Structure
-
-```
-ansible/
-├── ansible.cfg            # Roles path, inventory, callbacks config
-├── setup.yml              # Main playbook
-├── hosts.ini              # Local inventory
-├── requirements.yml       # Galaxy collections (community.general)
-├── group_vars/
-│   └── all.yml            # Shared variables (packages, versions, paths)
-└── roles/
-    ├── base/              # macOS check, essential dirs, global .gitignore
-    ├── homebrew/          # All Homebrew formulas and casks in one pass
-    ├── mise/              # Universal version manager setup
-    ├── secrets/           # Keychain provisioning
-    ├── nushell/           # Shell install + init files (env.nu / config.nu)
-    ├── fish/              # Secondary shell install (config comes from stow)
-    ├── ghostty/           # Terminal config symlink → Library/Application Support
-    ├── fonts/             # Nerd Fonts directory check
-    ├── stow/              # GNU Stow — ~/.config, ~/.claude, ~/.omp/agent symlinks
-    └── cliproxyapi/       # CLIProxyAPI config stow, secrets git filter, brew service
-```
-
-### Running the playbook manually
+Every Homebrew formula, cask and tap lives in `Brewfile`. `bootstrap.sh packages` runs `brew bundle install --no-upgrade`, so it installs what is missing and leaves installed versions alone.
 
 ```bash
-# Full install
-ansible-playbook ansible/setup.yml -i ansible/hosts.ini
-
-# Specific roles only
-ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags "nvim,nushell"
-
-# Dry-run
-ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff
+brew bundle dump --force --describe --file=Brewfile   # record what is installed now
+brew bundle cleanup --file=Brewfile                   # list what is installed but not listed (add --force to uninstall)
 ```
-
-### Available tags
-
-`base` · `homebrew` · `mise` · `secrets` · `fonts` · `ghostty` · `nushell` · `fish` · `stow` · `cliproxyapi`
-
-### First run — install Galaxy dependencies
-
-```bash
-ansible-galaxy collection install -r ansible/requirements.yml
-```
-
-> This is handled automatically by `bootstrap.sh`.
 
 ---
 
@@ -253,9 +191,14 @@ Replaces Volta, nvm, rbenv, sdkman and rustup. Config lives in `.config/mise/con
 
 ```toml
 [tools]
-node = "latest"
 bun = "latest"
+pnpm = "latest"
+node = "latest"
+go = "latest"
+java = "zulu-17.68.17.0"
 ```
+
+Projects pin their own versions in a `mise.toml` (for example `bun = "1.4.4"`), which wins over these globals.
 
 ```bash
 mise install          # install all tools
@@ -302,10 +245,10 @@ Differences worth knowing, coming from NuShell:
 
 ### Setting fish as the login shell
 
-Needs sudo, so it's opt-in and not part of the default playbook run:
+`bootstrap.sh` does it during a full install and asks for sudo. To run that step alone:
 
 ```bash
-ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags fish -K -e fish_set_default=true
+bash scripts/bootstrap.sh shells
 ```
 
 Or by hand:
@@ -319,7 +262,7 @@ chsh -s /opt/homebrew/bin/fish
 
 ## 🐚 Fallback shell: NuShell
 
-NuShell is **still installed and fully configured** — it is simply no longer the login shell. Nothing was deleted; the `nushell` Ansible role and `.config/nushell/` are untouched.
+NuShell is **still installed and fully configured** — it is simply no longer the login shell. Nothing was deleted: `.config/nushell/` is untouched and `bootstrap.sh nushell` still writes its entry points.
 
 Config files (all symlinked via Stow):
 
@@ -328,7 +271,7 @@ Config files (all symlinked via Stow):
 - `~/.config/nushell/secrets.nu`
 - `~/.config/starship/starship.toml`
 
-NuShell on macOS loads its entry points from `~/Library/Application Support/nushell/` — these are generated by Ansible and source the real configs from dotfiles.
+NuShell on macOS loads its entry points from `~/Library/Application Support/nushell/` — `bootstrap.sh nushell` writes them, and they source the real configs from dotfiles.
 
 Run `nu` for a one-off session. To make it the login shell again:
 
@@ -336,7 +279,7 @@ Run `nu` for a one-off session. To make it the login shell again:
 chsh -s /opt/homebrew/bin/nu
 ```
 
-and set `target_shell` back to `{{ homebrew_bin }}/nu` in `ansible/group_vars/all.yml`.
+`bootstrap.sh shells` sets fish again on its next run, so change `fish_bin` in that step too.
 
 ---
 
@@ -345,9 +288,7 @@ and set `target_shell` back to `{{ homebrew_bin }}/nu` in `ansible/group_vars/al
 - Theme: `Solarized Dark - Patched`
 - Font: `PlemolJP Console NF`
 - Opacity: `0.9`
-- Config: `~/Library/Application Support/com.mitchellh.ghostty/config`
-
-The config is a **symlink** managed by the `ghostty` Ansible role — no manual `ln -s` needed.
+- Config: `~/.config/ghostty/config`, symlinked by stow like the rest of `~/.config`.
 
 ---
 
@@ -357,7 +298,7 @@ The config is a **symlink** managed by the `ghostty` Ansible role — no manual 
   - Default model role: `anthropic/claude-sonnet-5:high` (`modelRoles.default` in `config.yml`).
   - `ANTHROPIC_API_KEY` is sourced from the Keychain by `secrets.nu` at shell startup (see [Secrets & Environment Variables](#-secrets--environment-variables)) — no manual `/login` or plaintext key on disk.
 - **[Herdr](https://herdr.dev/)** — agent multiplexer: a background server that keeps coding-agent terminals (Claude Code, Codex, opencode…) alive across laptop sleep, network drops and restarts, with per-pane status (working / blocked / idle) and cross-agent coordination via CLI + socket API.
-  - Installed via Homebrew (`herdr` in `homebrew_packages`).
+  - Installed via Homebrew (`herdr` in the `Brewfile`).
   - Config: `~/.config/herdr/config.toml` (symlinked from `dotfiles/.config/herdr/config.toml`, theme `catppuccin`). Everything else stays commented at defaults — `herdr --default-config` regenerates a fresh reference.
   - `~/.config/herdr/` stays a **real** directory so herdr's logs live next to the symlinked config without landing in git.
   - Run it as a background service with `brew services start herdr`, or one-shot with `herdr server`. `herdr --skill` prints agent instructions for driving herdr from inside a pane.
@@ -368,9 +309,9 @@ The config is a **symlink** managed by the `ghostty` Ansible role — no manual 
 
 [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) runs on `127.0.0.1:8317` and spreads Claude Code requests over several Claude subscriptions (`routing` in the config: round-robin + session affinity, failover when an account hits its limit).
 
-- Installed via Homebrew (`cliproxyapi` in `homebrew_packages`), run by the `cliproxyapi` role as a `brew services` login service: launchd restarts it if it crashes.
-- Config: `~/.cli-proxy-api/config.yaml` (symlinked from `dotfiles/.config/cli-proxy-api/config.yaml`). The Homebrew service reads `/opt/homebrew/etc/cliproxyapi.conf`, which the role points at that file.
-- **Secrets never reach git.** The client key (`access.api-keys`) and the management key (`management.secret-key`) live in the Keychain as `CLIPROXY_API_KEY` / `CLIPROXY_MANAGEMENT_KEY`. A git filter (`.gitattributes` → `scripts/cliproxy-secrets.sh`) swaps them for placeholders on `git add` and writes the real values back on checkout. The filter is enabled per clone by the `cliproxyapi` role (`git config filter.cliproxy-secrets.*`), so run the role before committing from a fresh clone.
+- Installed via Homebrew (`cliproxyapi` in the `Brewfile`), run by `bootstrap.sh cliproxyapi` as a `brew services` login service: launchd restarts it if it crashes.
+- Config: `~/.cli-proxy-api/config.yaml` (symlinked from `dotfiles/.config/cli-proxy-api/config.yaml`). The Homebrew service reads `/opt/homebrew/etc/cliproxyapi.conf`, which that step points at that file.
+- **Secrets never reach git.** The client key (`access.api-keys`) and the management key (`management.secret-key`) live in the Keychain as `CLIPROXY_API_KEY` / `CLIPROXY_MANAGEMENT_KEY`. A git filter (`.gitattributes` → `scripts/cliproxy-secrets.sh`) swaps them for placeholders on `git add` and writes the real values back on checkout. The filter is enabled per clone by `bootstrap.sh cliproxyapi` (`git config filter.cliproxy-secrets.*`), so run that step before committing from a fresh clone.
 - The OAuth tokens (`~/.cli-proxy-api/claude-*.json`) and logs stay untracked in the real `~/.cli-proxy-api/` directory. On a new machine, sign in again with `cliproxyapi -claude-login` (once per account).
 
 ```bash
@@ -406,7 +347,7 @@ cliproxyapi -claude-login                # add or re-login an account
 
 - Config: `~/.config/rex/init.lua` (symlinked from `dotfiles/.config/rex/init.lua`)
 - Migrated from the Zellij config: the Zellij modes (`locked`, `pane`, `tab`, `resize`, `scroll`, `session`, `tmux`) are Rex key modes entered with the same keys (`Ctrl g/a/t/n/s/x/b`), plus Ghostty's `cmd+arrows` pane focus and `cmd+shift+left/right` tab switching.
-- Rex itself is not installed by Ansible (the app manages its own updates). Theme and font are set in Rex Settings, not in `init.lua`.
+- Rex itself is not in the `Brewfile` (the app manages its own updates). Theme and font are set in Rex Settings, not in `init.lua`.
 - Validate after editing: `rex config check`, then *Reload Config* in Rex.
 
 ---

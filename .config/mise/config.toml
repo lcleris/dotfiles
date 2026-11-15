@@ -23,59 +23,18 @@ experimental = true
 [task_config]
 dir = "~/dotfiles"
 
-[tasks.mise_setup]
-description = "Installe tous les outils définis dans [tools]"
-run = "mise install"
-
 [tasks.install]
-description = "Install all the requirements before ansible (first install)"
+description = "Installe une machine neuve de bout en bout (scripts/bootstrap.sh)"
 run = "bash ./scripts/bootstrap.sh"
 
-[tasks.dry-run]
-description = "Vérifie ce qui sera installé sans rien modifier"
-run = "mise install --dry-run"
-
-[tasks.bootstrap-dry-run]
-description = "Dry-run du bootstrap complet (CHECK=1)"
-run = "CHECK=1 bash ./scripts/bootstrap.sh"
-
-[tasks.update]
-description = "Met à jour tous les outils vers leur dernière version"
-run = "mise upgrade"
-
-[tasks.status]
-description = "Affiche les versions installées vs demandées"
-run = "mise ls"
-
-[tasks.ansible-check]
-description = "Dry-run du playbook Ansible (ne modifie rien)"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --check --diff"
-
-[tasks.ansible-run]
-description = "Lance le playbook Ansible complet"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini"
-
-[tasks.ansible-nvim]
-description = "Déploie uniquement la config Neovim"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags nvim"
-
-[tasks.ansible-nushell]
-description = "Déploie uniquement la config NuShell"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags nushell"
-
-[tasks.ansible-fish]
-description = "Déploie uniquement la config fish"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags fish"
-
-[tasks.ansible-stow]
-description = "Déploie uniquement les symlinks Stow"
-run = "ansible-playbook ansible/setup.yml -i ansible/hosts.ini --tags stow"
-
 [tasks.stow]
-description = "Réapplique les symlinks Stow manuellement (sans Ansible)"
-run = """
-mkdir -p ~/.config/herdr   # vrai dossier : herdr y écrit ses logs, seul config.toml est stowé
-stow --dir=. --target=~/.config --restow --ignore='^omp$' .config
-stow --dir=. --target=~/.claude --restow .claude
-stow --dir=.config --target=~/.omp omp
-"""
+description = "Réapplique les symlinks Stow, CLIProxyAPI compris"
+run = "bash ./scripts/bootstrap.sh link cliproxyapi"
+
+[tasks.brew]
+description = "Installe ce qui manque du Brewfile"
+run = "bash ./scripts/bootstrap.sh packages"
+
+[tasks.check]
+description = "Liste les paquets du Brewfile qui ne sont pas installés"
+run = "brew bundle check --verbose --no-upgrade --file=Brewfile"
