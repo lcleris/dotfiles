@@ -6,7 +6,6 @@ $env.PATH = (
   | prepend "/opt/homebrew/sbin"
   | prepend "/usr/local/bin"
   | prepend $"($env.HOME)/.local/bin"
-  | prepend $"($env.HOME)/.mise/shims"  
   | uniq
   | str join (char esep)
 )
@@ -66,7 +65,6 @@ if not ($mise_path | path exists) {
 }
 
 # ─── Init tools ───────────────────────────────────────────────────────────────
-# Use ~/.cache for consistency with ansible
 let cache_dir = $"($env.HOME)/.cache"
 
 # Ensure cache directories exist
