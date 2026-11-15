@@ -314,15 +314,15 @@
     "bbq-mcp@bbq": true,
     "eli5@claude-community": true,
     "ponytail@claude-community": true,
-    "frontend-design@claude-plugins-official": true,
-    "github@claude-plugins-official": true,
+    "frontend-design@claude-plugins-official": false,
+    "github@claude-plugins-official": false,
     "impeccable@impeccable": true,
     "mattpocock-skills@mattpocock": true,
-    "rust-analyzer-lsp@claude-plugins-official": true,
+    "rust-analyzer-lsp@claude-plugins-official": false,
     "pstack@cursor-plugins": true,
-    "sentry@anthropic-plugin-directory": true,
+    "sentry@anthropic-plugin-directory": false,
     "expo@claude-plugins-official": true,
-    "neon-postgres@neon": true
+    "neon-postgres@neon": false
   },
   "extraKnownMarketplaces": {
     "bbq": {
@@ -365,5 +365,17 @@
   "effortLevel": "high",
   "tui": "fullscreen",
   "theme": "dark",
-  "agentPushNotifEnabled": true
+  "agentPushNotifEnabled": true,
+  "skillOverrides": {
+    "peon-ping-log": "user-invocable-only",
+    "peon-ping-config": "user-invocable-only",
+    "bbq-mcp:bbq": "user-invocable-only",
+    "bbq-mcp:bbq-offload": "user-invocable-only",
+    "bbq-mcp:barbecue": "user-invocable-only",
+    "bbq-mcp:churrasco": "user-invocable-only",
+    "eli5:eli5": "user-invocable-only"
+  },
+  "permissions": {
+    "defaultMode": "auto"
+  }
 }
