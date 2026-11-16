@@ -1,5 +1,0 @@
-- name: mise install
-  command: "{{ homebrew_bin }}/mise install --yes"
-  environment:
-    HOME: "{{ home }}"
-  changed_when: false

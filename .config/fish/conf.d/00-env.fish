@@ -10,7 +10,6 @@ fish_add_path -gp /opt/homebrew/bin
 fish_add_path -gp /opt/homebrew/sbin
 fish_add_path -gp /usr/local/bin
 fish_add_path -gp $HOME/.local/bin
-fish_add_path -gp $HOME/.mise/shims
 
 # ─── ENV vars ────────────────────────────────────────────────────────────────
 set -gx EDITOR nvim

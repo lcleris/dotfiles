@@ -3,7 +3,7 @@
 # Le repo est public : les secrets ne doivent jamais entrer dans git.
 #   clean  (git add)      : remplace les secrets par des placeholders
 #   smudge (git checkout) : remet les vraies valeurs depuis le Keychain
-# Activé par le rôle ansible `cliproxyapi` (git config filter.cliproxy-secrets.*).
+# Activé par `scripts/bootstrap.sh cliproxyapi` (git config filter.cliproxy-secrets.*).
 set -eu
 
 case "${1:-}" in
