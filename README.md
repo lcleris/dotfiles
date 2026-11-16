@@ -50,8 +50,13 @@ mise run install   # full bootstrap
 mise run stow      # re-apply the stow symlinks and the CLIProxyAPI config
 mise run brew      # install what the Brewfile lists and is missing
 mise run check     # list Brewfile entries that are not installed
+mise run verify    # prove the install steps are safe on an already-used Mac
 mise tasks         # list all available tasks
 ```
+
+### Verify the install
+
+`scripts/verify-bootstrap.py` runs the real `link`, `cliproxyapi` and `nushell` steps in a throwaway HOME, once for each of 480 combinations of what a used Mac may already have (stale links, conflicting configs, OAuth tokens, a hand-written nushell `env.nu`, and so on). It checks that the install never aborts, never loses a user file, links every file to the right place, keeps private folders private, and gives the same result when run again or in another step order. The `verify-bootstrap` skill in `.claude/skills/` describes the properties, the bounds, and the three findings it reports today.
 
 ---
 
