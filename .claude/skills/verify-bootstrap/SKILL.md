@@ -15,7 +15,7 @@ Each one is a promise the install makes, and the harm if it breaks.
 |---|---|---|
 | P1 | The steps exit 0 from every starting state. | `set -e` stops the install halfway, and later steps never run. |
 | P2 | Every tracked file under `.config/` and `.claude/` resolves from its home path to the repo file. No other link points into the repo. `$(brew --prefix)/etc/cliproxyapi.conf` reaches the repo config, the brew service starts, and both git filters are set. | A tool silently runs on a stale or missing config, or a config gets linked to the wrong place. |
-| P3 | Every file the user already had is still readable. It stays at its path, is adopted into the repo at that path, or has a `<name>.bak.<time>` copy next to it. | User data is gone. |
+| P3 | Every file the user already had is still readable. It stays at its path, is adopted into the repo at that path, or survives in a `<name>.bak.<time>` copy of itself or of a folder holding it. | User data is gone. |
 | P4 | The install changes the repo only by adopting a conflicting user file (`stow --adopt`). | Generated or machine-local files end up in a public git repo. |
 | P5 | `~/.config/herdr`, `~/.claude` and `~/.omp` are real directories, and `~/.cli-proxy-api` is a real directory with mode 700. | Logs, OAuth tokens or agent databases get written into the repo, or tokens become readable by other users. |
 | P6 | A second run exits 0 and leaves exactly the same state. | Every rerun drifts the machine further. |
@@ -59,11 +59,9 @@ Each `FAIL` line names one violation, how many starting states hit it, and one o
 
 ## Known findings
 
-At the sync commit, the check fails with exactly these three. Each one was also present in the Ansible playbook this script replaced. A change is safe when the output shows these and nothing new. When you fix one, delete it here.
+None at the sync commit: the check passes. Commit 25585d9 fixed the three it first reported, which the Ansible playbook already had: a real `~/.claude/commands` was deleted with `rm -rf`, an old folded `~/.config/herdr` link stayed folded, and a plain file where a stowed folder belongs made stow abort. The last three rows of the break table bring each one back.
 
-1. **P3, `~/.claude/commands` is deleted.** If it is a real folder, `step_link` runs `rm -rf` on it before stowing, so the user's own commands are lost. Steps: the user has `~/.claude/commands/my-command.md`, then `link` runs, then the file is gone. `stow --adopt` would keep it if the `rm -rf` were removed.
-2. **P5, an old folded `~/.config/herdr` link survives.** If `~/.config/herdr` is a stow link to the repo folder (the layout before commit 9aa81a8), `mkdir -p` succeeds through the link and `--restow` folds it again. herdr's logs then keep landing in the repo folder, where `.gitignore` hides them.
-3. **P1, a plain file where a stowed folder belongs aborts everything.** For example, a file at `~/.config/fish`. stow reports `cannot stow directory … over existing non-directory target fish` and aborts every link, so the install stops.
+When the check reports a finding you do not fix, list it here with its steps, so the next agent can tell it from a new break.
 
 ## A real bug or a modeling error?
 
@@ -89,7 +87,7 @@ Never weaken a property or drop a slot just to get a pass. If the code is right 
 
 ## When you change the verification
 
-Reprove that it can still fail. Break the code in each of these ways, one at a time, and run the check. Each one must add the listed violation on top of the known findings. Then restore the file with `git checkout -- scripts/bootstrap.sh`.
+Reprove that it can still fail. Break the code in each of these ways, one at a time, and run the check. Each one must add the listed violation on top of the known findings, if any. Then restore the file with `git checkout -- scripts/bootstrap.sh`.
 
 | Break in `scripts/bootstrap.sh` | Must add |
 |---|---|
@@ -101,25 +99,28 @@ Reprove that it can still fail. Break the code in each of these ways, one at a t
 | remove `chmod 700 "$HOME/.cli-proxy-api"` | P5 mode |
 | drop the `grep -qxF .DS_Store … \|\|` guard | P6 |
 | add `rm -f "$HOME/.cli-proxy-api/config.yaml"` at the top of `step_link` | P7 |
+| drop `herdr` from the stale-link loop in `step_link` | P5 `~/.config/herdr` |
+| replace `done < <(find …)` in `step_link` with `done < /dev/null` | P1 |
+| replace `move_aside "$HOME/.claude/commands"` with `rm -rf "$HOME/.claude/commands"` | P3 `my-command.md` lost |
 
 ## Coverage and sync
 
 The verification describes these files and functions:
 
-- `scripts/bootstrap.sh`, in `step_link`, `step_cliproxyapi`, `step_nushell`, `write_kept`, `restow` and `main`'s step dispatch
+- `scripts/bootstrap.sh`, in `step_link`, `step_cliproxyapi`, `step_nushell`, `write_kept`, `restow`, `move_aside` and `main`'s step dispatch
 - `scripts/cliproxy-secrets.sh`, the smudge path with no Keychain entry
 - `.gitattributes`, the filter assignments
 - the folder layout of `.config/` and `.claude/`, through `home_target()`
 
-**Sync commit:** `eefc04ebd436eb2e6d59866c0c5ad71163171412`
+**Sync commit:** `25585d996009e9420160d5312827c0929e37d281`
 
 To see whether the verification needs another look:
 
 ```bash
-git diff --stat eefc04eb..HEAD -- scripts/bootstrap.sh scripts/cliproxy-secrets.sh .gitattributes
-git diff --stat eefc04eb..HEAD --diff-filter=AD -- .config .claude
+git diff --stat 25585d99..HEAD -- scripts/bootstrap.sh scripts/cliproxy-secrets.sh .gitattributes
+git diff --stat 25585d99..HEAD --diff-filter=AD -- .config .claude
 ```
 
 If that commit is no longer in the history (after a squash merge), diff from the commit that last changed this file instead: `git log -1 --format=%H -- .claude/skills/verify-bootstrap/SKILL.md`.
 
-Move the sync commit forward only after you have read the covered changes, updated the harness where they change the contract, run the check, and seen exactly the known findings. Run the break table too if you changed the harness.
+Move the sync commit forward only after you have read the covered changes, updated the harness where they change the contract, run the check, and seen it pass or show exactly the known findings. Run the break table too if you changed the harness.

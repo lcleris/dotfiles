@@ -214,7 +214,13 @@ def check_state(case, tracked, seeded):
             bad.append(f"P2 git filter missing: {want}")
     for rel, content in seeded.items():
         f = home / rel
-        kept = [f] + sorted(f.parent.glob(f.name + ".bak.*")) if f.parent.is_dir() else [f]
+        # The file itself, or a .bak copy of it or of a folder holding it.
+        kept = [f]
+        for a in [f, *f.parents]:
+            if a == home:
+                break
+            if a.parent.is_dir():
+                kept += [b / f.relative_to(a) for b in a.parent.glob(a.name + ".bak.*")]
         if not any(k.is_file() and k.read_text() == content for k in kept):
             bad.append(f"P3 user file ~/{rel} lost: not at its path, not adopted, no .bak copy")
     for line in sh("git", "status", "--porcelain", "--ignored", "-uall", cwd=repo).stdout.splitlines():
