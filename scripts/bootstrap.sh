@@ -169,6 +169,7 @@ step_shells() {
 
 # ─── Symlinks ─────────────────────────────────────────────────────────────────
 restow() { stow --restow --adopt "$@"; }
+move_aside() { mv "$1" "$1.bak.$(date +%Y%m%d%H%M%S)"; }
 
 step_link() {
   step "Symlinks (stow)"
@@ -182,13 +183,22 @@ step_link() {
   git -C "$DOTFILES_DIR" config filter.claude-settings.smudge cat
   git -C "$DOTFILES_DIR" config filter.claude-settings.required true
 
-  # Hand-made links from older setups block stow; stow's own come back on restow.
-  for d in nushell fish nvim starship ghostty zed jiratui; do
+  # Hand-made links from older setups block stow; stow's own come back on
+  # restow. herdr's old folded link must go so the folder below stays real.
+  for d in nushell fish nvim starship ghostty zed jiratui herdr; do
     if [[ -L "$HOME/.config/$d" ]]; then rm "$HOME/.config/$d"; fi
   done
+  # ~/.claude/commands is one folded link into the repo, so a real folder
+  # there is set aside, not merged.
   if [[ -d "$HOME/.claude/commands" && ! -L "$HOME/.claude/commands" ]]; then
-    rm -rf "$HOME/.claude/commands"
+    move_aside "$HOME/.claude/commands"
   fi
+  # A plain file where the repo has a folder makes stow abort every link.
+  local src dest
+  while IFS= read -r src; do
+    dest="$HOME/${src#"$DOTFILES_DIR"/}"
+    if [[ -f "$dest" && ! -L "$dest" ]]; then move_aside "$dest"; fi
+  done < <(find "$DOTFILES_DIR/.config" "$DOTFILES_DIR/.claude" -mindepth 1 -type d)
 
   # Real dir: herdr writes its logs next to config.toml, only that file is stowed.
   mkdir -p "$HOME/.config/herdr"
