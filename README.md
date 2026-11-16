@@ -197,7 +197,6 @@ Replaces Volta, nvm, rbenv, sdkman and rustup. Config lives in `.config/mise/con
 ```toml
 [tools]
 bun = "latest"
-pnpm = "latest"
 node = "latest"
 go = "latest"
 java = "zulu-17.68.17.0"

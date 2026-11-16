@@ -6,7 +6,6 @@
 
 [tools]
 bun = "latest"
-pnpm = "latest"
 node = "latest"
 go = "latest"
 java = "zulu-17.68.17.0"
