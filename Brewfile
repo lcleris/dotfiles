@@ -48,10 +48,6 @@ brew "glab"
 brew "gnupg"
 # Open-source build automation tool based on the Groovy and Kotlin DSL
 brew "gradle"
-# Agent multiplexer that lives in your terminal
-brew "herdr"
-# Textual User Interface for interacting with Atlassian Jira from your shell
-brew "jiratui"
 # Handy way to save and run project-specific commands
 brew "just"
 # Statically typed programming language for the JVM
@@ -68,8 +64,6 @@ brew "mkcert"
 brew "mole"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
-# Modern shell for the GitHub era
-brew "nushell"
 # OpenAPI Diff and Breaking Changes
 brew "oasdiff"
 # Identify unused code in Swift projects

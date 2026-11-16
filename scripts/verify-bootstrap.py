@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bounded exhaustive check of the install steps in scripts/bootstrap.sh.
 
-Runs the real `bootstrap.sh link cliproxyapi nushell` in a throwaway HOME and a
+Runs the real `bootstrap.sh link cliproxyapi` in a throwaway HOME and a
 throwaway copy of the repo, once for every combination of the pre-existing
 states in SLOTS, and checks the properties in .claude/skills/verify-bootstrap.
 
@@ -19,7 +19,7 @@ import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-STEPS = ["link", "cliproxyapi", "nushell"]
+STEPS = ["link", "cliproxyapi"]
 FAKE_USER = "verify-bootstrap-nobody"  # no Keychain entry, so the smudge filter keeps its placeholders
 STOW_DEFAULT_IGNORE = re.compile(
     r"^(RCS|.+,v|CVS|\.cvsignore|\.svn|_darcs|\.hg|\.git|\.gitignore|\.gitmodules|.+~|#.*#|\.#.+|README.*|LICENSE.*|COPYING)$"
@@ -32,8 +32,6 @@ def home_target(rel, home):
     if p[0] == ".claude":
         return None if len(p) > 1 and p[1] == "skills" else home / rel
     if p[0] == ".config" and len(p) > 1:
-        if p[1] == "omp":
-            return home.joinpath(".omp", *p[2:])
         if p[1] == "cli-proxy-api":
             return home.joinpath(".cli-proxy-api", *p[2:])
         return home / rel
@@ -67,7 +65,7 @@ def private_token_dir(home, repo):
 
 
 absent = None
-# One slot per kind of thing step_link / step_cliproxyapi / step_nushell meet on a used Mac.
+# One slot per kind of thing step_link / step_cliproxyapi meet on a used Mac.
 SLOTS = {
     "config-dir": {
         "absent": absent,
@@ -75,11 +73,6 @@ SLOTS = {
         "real-dir": user_file(".config/fish/user-notes.fish", "USER fish notes"),
         "conflict": user_file(".config/fish/config.fish", "USER old config.fish"),
         "plain-file": user_file(".config/fish", "USER file where a dir belongs"),
-    },
-    "herdr": {
-        "absent": absent,
-        "real-dir-with-log": user_file(".config/herdr/herdr.log", "USER herdr log"),
-        "old-folded-link": link(".config/herdr", "../../dotfiles/.config/herdr"),
     },
     "claude-commands": {
         "absent": absent,
@@ -92,14 +85,6 @@ SLOTS = {
     "cliproxy": {
         "absent": absent,
         "token-dir": private_token_dir,
-    },
-    "omp": {
-        "absent": absent,
-        "agent-db": user_file(".omp/agent/agent.db", "USER omp db"),
-    },
-    "nushell-entry": {
-        "absent": absent,
-        "user-env": user_file("Library/Application Support/nushell/env.nu", "USER nushell env"),
     },
 }
 
@@ -229,7 +214,7 @@ def check_state(case, tracked, seeded):
         adopted = code == " M" and dest is not None and seeded.get(dest.relative_to(home).as_posix()) == (repo / rel).read_text()
         if not adopted:
             bad.append(f"P4 repo changed by the install: {line}")
-    for rel, mode in [(".config/herdr", None), (".claude", None), (".omp", None), (".cli-proxy-api", 0o700)]:
+    for rel, mode in [(".claude", None), (".cli-proxy-api", 0o700)]:
         d = home / rel
         if d.is_symlink() or not d.is_dir():
             bad.append(f"P5 ~/{rel} is not a real directory")
@@ -306,7 +291,7 @@ def main():
     for v, names in sorted(shown.items()):
         print(f"FAIL {v}\n     {len(names)} case(s), e.g. {names[0]}")
     total = len(combos)
-    print(f"\n{total} start states x 2 runs, 12 step orders. {'FAIL' if shown else 'PASS'}"
+    print(f"\n{total} start states x 2 runs, {2 * len(list(itertools.permutations(STEPS)))} step orders. {'FAIL' if shown else 'PASS'}"
           f"{f' ({len(shown)} distinct violations)' if shown else ''}")
     sys.exit(1 if shown else 0)
 
