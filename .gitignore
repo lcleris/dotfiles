@@ -10,9 +10,6 @@
 *.pem
 *.key
 
-# NuShell history (données locales)
-.config/nushell/history.txt
-
 # fish : variables universelles + completions générées (état local, pas de config)
 # L'historique fish vit dans ~/.local/share/fish/, hors du repo.
 .config/fish/fish_variables
@@ -27,12 +24,9 @@
 .claude/hooks/peon-ping/.paused
 .claude/hooks/peon-ping/*.log
 
-# herdr : logs runtime écrits à côté de config.toml
-.config/herdr/*.log
-
 # Caches
 .cache/
 
-# Python bytecode (généré par les scripts de .claude/commands)
+# Python bytecode
 __pycache__/
 *.pyc

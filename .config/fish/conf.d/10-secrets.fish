@@ -18,10 +18,8 @@ function __keychain_get -a service -d "Lire un secret depuis le Keychain macOS"
 end
 
 # ─── Liste des secrets à exporter ────────────────────────────────────────────
-#   JIRA_API_TOKEN     — Atlassian (vertuoza.atlassian.net)
-#   ANTHROPIC_API_KEY  — omp
 #   SOPS_AGE_KEY       — sops (casadana .env.encrypted)
-for __secret in JIRA_API_TOKEN ANTHROPIC_API_KEY SOPS_AGE_KEY
+for __secret in SOPS_AGE_KEY
     set -l __value (__keychain_get $__secret)
     if test -n "$__value"
         set -gx $__secret $__value

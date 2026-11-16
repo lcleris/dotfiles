@@ -10,12 +10,9 @@ Personal macOS setup, managed with a Brewfile, GNU Stow and one bootstrap script
 | [GNU Stow](https://www.gnu.org/software/stow/)      | Dotfiles symlink manager                            |
 | [MISE](https://mise.jdx.dev/)                       | Universal version manager (Node, Rust, Ruby, Java…) |
 | [fish](https://fishshell.com/)                      | Primary shell                                       |
-| [NuShell](https://www.nushell.sh/)                  | Fallback shell (kept configured, not the default)   |
 | [Starship](https://starship.rs/)                    | Prompt                                              |
 | [Ghostty](https://ghostty.org/)                     | Terminal emulator                                   |
 | [Rex](https://www.superlogical.com/rex/)            | Terminal multiplexer (primary)                      |
-| [Oh My Pi (omp)](https://github.com/can1357/oh-my-pi)  | AI coding agent CLI                                 |
-| [Herdr](https://herdr.dev/)                          | Agent multiplexer / persistent runtime for coding agents |
 | [Neovim](https://neovim.io/)                        | Editor (LazyVim-based)                              |
 | [Carapace](https://github.com/rsteube/carapace-bin) | Multi-shell completion                              |
 | [Zoxide](https://github.com/ajeetdsouza/zoxide)     | Smart directory navigation                          |
@@ -30,7 +27,7 @@ One command to rule them all:
 curl -fsSL https://raw.githubusercontent.com/lcleris/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
-The script runs in order: Xcode CLI Tools → **collect secrets** → Homebrew → clone repo → `brew bundle` → login shell → stow symlinks → CLIProxyAPI → NuShell entry points → `mise install`.
+The script runs in order: Xcode CLI Tools → **collect secrets** → Homebrew → clone repo → `brew bundle` → login shell → stow symlinks → CLIProxyAPI → `mise install`.
 
 ### Run some steps only
 
@@ -41,7 +38,7 @@ bash ./scripts/bootstrap.sh link cliproxyapi   # re-apply symlinks
 curl -fsSL https://raw.githubusercontent.com/lcleris/dotfiles/main/scripts/bootstrap.sh | bash -s -- packages
 ```
 
-Steps: `preflight` · `secrets` · `homebrew` · `clone` · `packages` · `shells` · `link` · `cliproxyapi` · `nushell` · `tools`
+Steps: `preflight` · `secrets` · `homebrew` · `clone` · `packages` · `shells` · `link` · `cliproxyapi` · `tools`
 
 ### MISE tasks (repo already cloned)
 
@@ -56,7 +53,7 @@ mise tasks         # list all available tasks
 
 ### Verify the install
 
-`scripts/verify-bootstrap.py` runs the real `link`, `cliproxyapi` and `nushell` steps in a throwaway HOME, once for each of 480 combinations of what a used Mac may already have (stale links, conflicting configs, OAuth tokens, a hand-written nushell `env.nu`, and so on). It checks that the install never aborts, never loses a user file, links every file to the right place, keeps private folders private, and gives the same result when run again or in another step order. The `verify-bootstrap` skill in `.claude/skills/` describes the properties, the bounds, and how to tell a real break from a harness error.
+`scripts/verify-bootstrap.py` runs the real `link` and `cliproxyapi` steps in a throwaway HOME, once for each of 40 combinations of what a used Mac may already have (stale links, conflicting configs, OAuth tokens, and so on). It checks that the install never aborts, never loses a user file, links every file to the right place, keeps private folders private, and gives the same result when run again or in another step order. The `verify-bootstrap` skill in `.claude/skills/` describes the properties, the bounds, and how to tell a real break from a harness error.
 
 ---
 
@@ -71,22 +68,13 @@ Each shell reads the values from the Keychain at startup. The files are tracked 
 fish (`.config/fish/conf.d/10-secrets.fish`) — loops over the list:
 
 ```fish
-for __secret in JIRA_API_TOKEN ANTHROPIC_API_KEY SOPS_AGE_KEY
+for __secret in SOPS_AGE_KEY
     set -l __value (__keychain_get $__secret)
     test -n "$__value"; and set -gx $__secret $__value
 end
 ```
 
-NuShell (`.config/nushell/secrets.nu`) — one block per secret:
-
-```nushell
-let akka_key = (keychain-get "AKKA_LICENSE_KEY")
-if ($akka_key | is-not-empty) {
-  $env.AKKA_LICENSE_KEY = $akka_key
-}
-```
-
-Both are loaded in a context that also applies to **non-interactive shells** (`conf.d/` for fish, `env.nu` rather than `config.nu` for NuShell), so environment variables are available to all child processes, including backend servers.
+It lives in `conf.d/`, which fish also loads in **non-interactive shells**, so environment variables are available to all child processes, including backend servers.
 
 ### Automated provisioning
 
@@ -116,29 +104,7 @@ REQUIRED_SECRETS=(
 **2. Add the service name to the fish loop in `.config/fish/conf.d/10-secrets.fish`:**
 
 ```fish
-for __secret in JIRA_API_TOKEN ANTHROPIC_API_KEY SOPS_AGE_KEY MY_NEW_SECRET
-```
-
-**2b. (optional) Mirror it in `.config/nushell/secrets.nu`** so the fallback shell sees it too:
-
-```nushell
-let my_secret = (keychain-get "MY_NEW_SECRET")
-if ($my_secret | is-not-empty) {
-  $env.MY_NEW_SECRET = $my_secret
-}
-```
-
-### Manual Keychain management
-
-```bash
-# Store a secret
-security add-generic-password -a "$USER" -s "MY_SECRET" -w "the_value"
-
-# Read a secret
-security find-generic-password -a "$USER" -s "MY_SECRET" -w
-
-# Delete a secret
-security delete-generic-password -a "$USER" -s "MY_SECRET"
+for __secret in SOPS_AGE_KEY MY_NEW_SECRET
 ```
 
 > **Never commit secrets.** `.gitignore` also blocks `.mise.local.toml` which can hold local env overrides that don't belong in the Keychain.
@@ -152,24 +118,21 @@ All config symlinks are managed by **GNU Stow** — no manual `ln -s` needed.
 Stow maps `dotfiles/.config/` directly to `~/.config/`:
 
 ```
-dotfiles/.config/nushell/  →  ~/.config/nushell
 dotfiles/.config/fish/     →  ~/.config/fish
 dotfiles/.config/nvim/     →  ~/.config/nvim
 dotfiles/.config/mise/     →  ~/.config/mise
 dotfiles/.config/starship/ →  ~/.config/starship
 dotfiles/.config/rex/      →  ~/.config/rex
-dotfiles/.config/herdr/    →  ~/.config/herdr (config.toml uniquement, voir ci-dessous)
 ```
 
 A few packages live under `dotfiles/.config/` for organization but are stowed to their **real** (non-XDG) config location instead of `~/.config/`, so they're excluded from the mapping above via `stow --ignore`:
 
 ```
-dotfiles/.config/omp/agent/config.yml     →  ~/.omp/agent/config.yml
 dotfiles/.config/cli-proxy-api/config.yaml →  ~/.cli-proxy-api/config.yaml
 dotfiles/.claude/                          →  ~/.claude/
 ```
 
-Only the tracked files/dirs get symlinked — untracked runtime state next to them (`~/.omp/agent/agent.db`, `~/.omp/agent/sessions/`, etc.) is left as real files on disk, never pulled into git. Same idea for **herdr**: `~/.config/herdr` is kept as a real directory (created by `bootstrap.sh link` before stowing) so only `config.toml` becomes a symlink and herdr's logs (`herdr.log`, `herdr-client.log`, `herdr-server.log`) stay out of the repo.
+Only the tracked files/dirs get symlinked — untracked runtime state next to them (OAuth tokens, logs) is left as real files on disk, never pulled into git.
 
 `bootstrap.sh` runs stow during a full install. To re-apply it:
 
@@ -221,7 +184,7 @@ mise use node@26      # switch a specific version
 - **Navigation**: Zoxide (aliased over `cd`)
 - **Fuzzy find**: fzf key bindings (`Ctrl-R` / `Ctrl-T` / `Alt-C`)
 
-Unlike NuShell, fish reads `~/.config/fish` directly — no entry-point stubs in `~/Library/Application Support/`, and no pre-generated init files in `~/.cache` (`<tool> | source` works at runtime).
+fish reads `~/.config/fish` directly — no entry-point stubs in `~/Library/Application Support/`, and no pre-generated init files in `~/.cache` (`<tool> | source` works at runtime).
 
 ```
 .config/fish/
@@ -237,15 +200,7 @@ Unlike NuShell, fish reads `~/.config/fish` directly — no entry-point stubs in
     └── env-encrypt.fish  env-decrypt.fish  shrink-img.fish
 ```
 
-Secrets live in `conf.d/`, which fish sources in **non-interactive shells too** — so child processes (backend servers, etc.) inherit `JIRA_API_TOKEN` & co. Same guarantee the NuShell setup got by putting them in `env.nu` rather than `config.nu`.
-
-Differences worth knowing, coming from NuShell:
-
-- `l` / `ll` now call **eza**. In NuShell they used the `ls` builtin; fish's `ls` is BSD `/bin/ls`, which rejects `--all`.
-- Git shortcuts are **abbreviations**, not aliases — they expand in the command line, so history stores the real command and you can append flags.
-- `cx` resolves `cd` to zoxide at call time (fish resolves functions late). Use `builtin cd` inside it for the strict NuShell behaviour.
-- fzf key bindings (`Ctrl-R` / `Ctrl-T` / `Alt-C`) come for free; there's no NuShell equivalent.
-- You lose structured pipelines (`ls | where size > 10mb`, `open x.json | get y`). fish is string-only — `shrink-img` and `gbr` were rewritten around `string`, `stat` and `math` because of it.
+Secrets live in `conf.d/`, which fish sources in **non-interactive shells too** — so child processes (backend servers, etc.) inherit `SOPS_AGE_KEY` & co.
 
 ### Setting fish as the login shell
 
@@ -264,48 +219,12 @@ chsh -s /opt/homebrew/bin/fish
 
 ---
 
-## 🐚 Fallback shell: NuShell
-
-NuShell is **still installed and fully configured** — it is simply no longer the login shell. Nothing was deleted: `.config/nushell/` is untouched and `bootstrap.sh nushell` still writes its entry points.
-
-Config files (all symlinked via Stow):
-
-- `~/.config/nushell/config.nu`
-- `~/.config/nushell/env.nu`
-- `~/.config/nushell/secrets.nu`
-- `~/.config/starship/starship.toml`
-
-NuShell on macOS loads its entry points from `~/Library/Application Support/nushell/` — `bootstrap.sh nushell` writes them, and they source the real configs from dotfiles.
-
-Run `nu` for a one-off session. To make it the login shell again:
-
-```bash
-chsh -s /opt/homebrew/bin/nu
-```
-
-`bootstrap.sh shells` sets fish again on its next run, so change `fish_bin` in that step too.
-
----
-
 ## 🖥️ Terminal: Ghostty
 
 - Theme: `Solarized Dark - Patched`
 - Font: `PlemolJP Console NF`
 - Opacity: `0.9`
 - Config: `~/.config/ghostty/config`, symlinked by stow like the rest of `~/.config`.
-
----
-
-## 🤖 Oh My Pi (omp) + Herdr
-
-- **omp** — AI coding agent CLI. Config: `~/.omp/agent/config.yml` (symlinked from `dotfiles/.config/omp/agent/config.yml`; `agent.db`, `sessions/`, `.env`, and other runtime state stay real, untracked files next to it).
-  - Default model role: `anthropic/claude-sonnet-5:high` (`modelRoles.default` in `config.yml`).
-  - `ANTHROPIC_API_KEY` is sourced from the Keychain by `secrets.nu` at shell startup (see [Secrets & Environment Variables](#-secrets--environment-variables)) — no manual `/login` or plaintext key on disk.
-- **[Herdr](https://herdr.dev/)** — agent multiplexer: a background server that keeps coding-agent terminals (Claude Code, Codex, opencode…) alive across laptop sleep, network drops and restarts, with per-pane status (working / blocked / idle) and cross-agent coordination via CLI + socket API.
-  - Installed via Homebrew (`herdr` in the `Brewfile`).
-  - Config: `~/.config/herdr/config.toml` (symlinked from `dotfiles/.config/herdr/config.toml`, theme `catppuccin`). Everything else stays commented at defaults — `herdr --default-config` regenerates a fresh reference.
-  - `~/.config/herdr/` stays a **real** directory so herdr's logs live next to the symlinked config without landing in git.
-  - Run it as a background service with `brew services start herdr`, or one-shot with `herdr server`. `herdr --skill` prints agent instructions for driving herdr from inside a pane.
 
 ---
 
