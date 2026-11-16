@@ -27,7 +27,7 @@ Personal macOS setup, managed with a Brewfile, GNU Stow and one bootstrap script
 One command to rule them all:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/lcleris/dotfiles/main/scripts/bootstrap.sh | bash
 ```
 
 The script runs in order: Xcode CLI Tools → **collect secrets** → Homebrew → clone repo → `brew bundle` → login shell → stow symlinks → CLIProxyAPI → NuShell entry points → `mise install`.
@@ -38,7 +38,7 @@ Each step is idempotent and can run on its own. Pass the step names as arguments
 
 ```bash
 bash ./scripts/bootstrap.sh link cliproxyapi   # re-apply symlinks
-curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash -s -- packages
+curl -fsSL https://raw.githubusercontent.com/lcleris/dotfiles/main/scripts/bootstrap.sh | bash -s -- packages
 ```
 
 Steps: `preflight` · `secrets` · `homebrew` · `clone` · `packages` · `shells` · `link` · `cliproxyapi` · `nushell` · `tools`

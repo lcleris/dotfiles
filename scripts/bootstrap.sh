@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
 # bootstrap.sh — Loan CLERIS | Dotfiles Setup
-# Usage: curl -fsSL https://raw.githubusercontent.com/TheHikuro/dotfiles/main/scripts/bootstrap.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/lcleris/dotfiles/main/scripts/bootstrap.sh | bash
 # Run only some steps:
 #   bash scripts/bootstrap.sh link cliproxyapi
 #   curl -fsSL …/bootstrap.sh | bash -s -- packages
@@ -20,7 +20,7 @@ BLUE="\033[0;34m"
 CYAN="\033[0;36m"
 
 # ─── Config ───────────────────────────────────────────────────────────────────
-DOTFILES_REPO="git@github.com:TheHikuro/dotfiles.git"
+DOTFILES_REPO="git@github.com:lcleris/dotfiles.git"
 DOTFILES_DIR="${DOTFILES_DIR:-${HOME}/dotfiles}"
 LOG_FILE="${HOME}/.dotfiles_bootstrap.log"
 ALL_STEPS=(preflight secrets homebrew clone packages shells link cliproxyapi nushell tools)
