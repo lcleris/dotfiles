@@ -195,7 +195,8 @@ step_link() {
 
   # omp and cli-proxy-api go to their native config roots, not ~/.config.
   restow --dir="$DOTFILES_DIR" --target="$HOME/.config" --ignore='^(omp|cli-proxy-api)$' .config
-  restow --dir="$DOTFILES_DIR" --target="$HOME/.claude" .claude
+  # .claude/skills holds this repo's own skills, kept out of the global ~/.claude/skills.
+  restow --dir="$DOTFILES_DIR" --target="$HOME/.claude" --ignore='^skills$' .claude
   restow --dir="$DOTFILES_DIR/.config" --target="$HOME/.omp" omp
   success "Dotfiles linked"
 }
@@ -235,14 +236,23 @@ step_cliproxyapi() {
 # nushell reads ~/Library/Application Support/nushell, not ~/.config/nushell,
 # so these entry points source the real files from the repo. env.nu generates
 # the starship, carapace, zoxide and mise init files itself.
+# Writes $2 to $1, first copying a different existing $1 to $1.bak.<time>.
+write_kept() {
+  if [[ -f "$1" ]]; then
+    [[ "$(cat "$1")" == "$2" ]] && return 0
+    cp "$1" "$1.bak.$(date +%Y%m%d%H%M%S)"
+  fi
+  printf '%s\n' "$2" >"$1"
+}
+
 step_nushell() {
   step "Nushell entry points"
   local dir="$HOME/Library/Application Support/nushell"
   mkdir -p "$dir"
-  printf '# Managed by scripts/bootstrap.sh\nsource %s\nsource %s\n' \
-    "$DOTFILES_DIR/.config/nushell/env.nu" "$DOTFILES_DIR/.config/nushell/secrets.nu" >"$dir/env.nu"
-  printf '# Managed by scripts/bootstrap.sh\nsource %s\n' \
-    "$DOTFILES_DIR/.config/nushell/config.nu" >"$dir/config.nu"
+  write_kept "$dir/env.nu" "$(printf '# Managed by scripts/bootstrap.sh\nsource %s\nsource %s' \
+    "$DOTFILES_DIR/.config/nushell/env.nu" "$DOTFILES_DIR/.config/nushell/secrets.nu")"
+  write_kept "$dir/config.nu" "$(printf '# Managed by scripts/bootstrap.sh\nsource %s' \
+    "$DOTFILES_DIR/.config/nushell/config.nu")"
   success "Nushell entry points → ${dir}"
 }
 
