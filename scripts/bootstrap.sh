@@ -171,7 +171,7 @@ move_aside() { mv "$1" "$1.bak.$(date +%Y%m%d%H%M%S)"; }
 
 step_link() {
   step "Symlinks (stow)"
-  mkdir -p "$HOME/.config" "$HOME/.cache/starship" "$HOME/.cache/carapace" "$HOME/.local/bin" "$HOME/.claude"
+  mkdir -p "$HOME/.config" "$HOME/.cache/starship" "$HOME/.cache/carapace" "$HOME/.local/bin" "$HOME/.claude" "$HOME/.codex"
 
   grep -qxF .DS_Store "$HOME/.gitignore_global" 2>/dev/null || echo .DS_Store >>"$HOME/.gitignore_global"
   git config --global core.excludesfile "$HOME/.gitignore_global"
@@ -196,6 +196,7 @@ step_link() {
   restow --dir="$DOTFILES_DIR" --target="$HOME/.config" --ignore='^cli-proxy-api$' .config
   # .claude/skills holds this repo's own skills, kept out of the global ~/.claude/skills.
   restow --dir="$DOTFILES_DIR" --target="$HOME/.claude" --ignore='^skills$' .claude
+  restow --dir="$DOTFILES_DIR" --target="$HOME/.codex" .codex
   success "Dotfiles linked"
 }
 

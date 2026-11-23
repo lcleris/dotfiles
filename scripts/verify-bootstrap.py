@@ -31,6 +31,8 @@ def home_target(rel, home):
     p = rel.split("/")
     if p[0] == ".claude":
         return None if len(p) > 1 and p[1] == "skills" else home / rel
+    if p[0] == ".codex":
+        return home / rel
     if p[0] == ".config" and len(p) > 1:
         if p[1] == "cli-proxy-api":
             return home.joinpath(".cli-proxy-api", *p[2:])
