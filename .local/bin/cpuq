@@ -1,0 +1,544 @@
+#!/usr/bin/python3 -I
+"""cpuq: machine-wide admission gate for heavy dev commands (tests, lint, type check, build).
+
+A job starts once its weight fits the budget AND the machine has headroom (CPU, memory).
+Waiters start first-in first-out; scoped unit tests may briefly overtake a fresh head.
+A check command (lint, type check, test) rerun on an identical git tree replays the stored
+result, and an identical run already in flight is awaited instead of duplicated.
+
+  cpuq [--no-cache] [--weight N] [--] <command> [args...]
+  cpuq --status        running and queued jobs, current headroom
+  cpuq --probe <cmd>   JSON: would <cmd> start now?
+  cpuq --hook-bash     Claude Code PreToolUse hook for Bash (wraps heavy commands)
+  cpuq --hook-agent    Claude Code PreToolUse hook for Agent spawns (waits for headroom)
+
+Tuning (env): CPUQ_BUDGET, CPUQ_FLOOR, CPUQ_CPU_MAX, CPUQ_MEM_MIN, CPUQ_SETTLE,
+CPUQ_FORCE_AFTER, CPUQ_BACKFILL, CPUQ_CACHE_TTL, CPUQ_AGENT_WAIT, CPUQ_NOCACHE=1.
+Each run appends a line to ~/.cache/cpuq.log.
+"""
+import contextlib
+import fcntl
+import hashlib
+import json
+import os
+import re
+import shlex
+import shutil
+import signal
+import statistics
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+
+SELF = os.path.realpath(__file__)
+ROOT = os.environ.get('CPUQ_DIR') or os.path.expanduser('~/.cache/cpuq')
+STATE = os.path.join(ROOT, 'state.json')
+LOCK = os.path.join(ROOT, 'state.lock')
+RESULTS = os.path.join(ROOT, 'results')
+LOG = os.environ.get('CPUQ_LOG') or os.path.expanduser('~/.cache/cpuq.log')
+NCPU = os.cpu_count() or 8
+
+
+def num(name, default):
+    try:
+        return float(os.environ[name])
+    except (KeyError, ValueError):
+        return default
+
+
+BUDGET = num('CPUQ_BUDGET', NCPU)            # total weight running at once
+FLOOR = num('CPUQ_FLOOR', 5)                 # weight allowed to run whatever the load
+CPU_MAX = num('CPUQ_CPU_MAX', 0.85)          # busy fraction of all cores; above it nothing new starts
+MEM_MIN = num('CPUQ_MEM_MIN', 15)            # % memory free; below it nothing new starts
+SETTLE = num('CPUQ_SETTLE', 4)               # seconds between starts, so load reflects the last one
+FORCE_AFTER = num('CPUQ_FORCE_AFTER', 600)   # queue head ignores CPU/memory after waiting this long
+BACKFILL = num('CPUQ_BACKFILL', 120)         # light jobs may overtake a head younger than this
+CACHE_TTL = num('CPUQ_CACHE_TTL', 6 * 3600)
+AGENT_WAIT = num('CPUQ_AGENT_WAIT', 90)      # how long an Agent spawn waits for headroom before denial
+POLL = 1.0
+
+DEFAULT_RUN = {'test-scoped': 30, 'test-story': 120, 'check': 120, 'test-full': 300,
+               'mutation': 600, 'build': 120, 'install': 30, 'other': 30}
+
+
+def say(msg):
+    sys.stderr.write('cpuq: ' + msg + '\n')
+    sys.stderr.flush()
+
+
+def human(seconds):
+    seconds = max(0, int(seconds))
+    return f'{seconds}s' if seconds < 90 else f'{round(seconds / 60)}m'
+
+
+# ---------------------------------------------------------------- classification
+
+TEST = re.compile(r'(vitest|jest|(^|[^\w])test(:[a-z-]+)?([^\w]|$))')
+SCOPED = re.compile(r'((^|\s)(\./)?(src|apps|packages|tests?|e2e)/\S+|\.(test|spec)\.[jt]sx?|\s-t\s)')
+STORY = re.compile(r'storybook|stories')
+CHECK = re.compile(r'lint|tsc|tsgo|typecheck|type-check|check-types|fallow')
+
+
+def classify(cmd):
+    """-> (kind, weight, cacheable)."""
+    if re.search(r'stryker|mutation', cmd):
+        return 'mutation', 6, True
+    if re.search(r'\bbuild\b', cmd):
+        return 'build', 4, False
+    if CHECK.search(cmd) or re.search(r'\bturbo\b', cmd):
+        return 'check', 4, True
+    if TEST.search(cmd):
+        if SCOPED.search(cmd):
+            return ('test-story', 3, True) if STORY.search(cmd) else ('test-scoped', 1, True)
+        return 'test-full', 6, True
+    if re.search(r'\b(install|ci)\b', cmd):
+        return 'install', 2, False
+    return 'other', 2, False
+
+
+# Commands whose effect is more than their output must run for real, never replay.
+WRITES = re.compile(
+    r'(^|[\s;&|(])(fmt|format|prettier|install|add|tee|rm|mv|cp|touch|mkdir|sed\s+-i|python3?|node\s+-e'
+    r'|git\s+(commit|checkout|switch|reset|stash|apply|am|merge|rebase|pull|push|add|restore))\b'
+    r'|--fix\b|:fix\b|--write\b|\s-u\b|--update\b|codegen|generate')
+
+
+def has_side_effects(cmd):
+    stripped = re.sub(r'\d?>&\d|&?\d?>\s*/dev/null', '', cmd)
+    return bool(WRITES.search(stripped) or '>' in stripped)
+
+
+# The Bash hook judges shell words only: a heredoc body or quoted string is data.
+HEREDOC = re.compile(r'<<-?[ \t]*[\'"]?(?P<tag>[A-Za-z_]+)[\'"]?[^\n]*\n([\s\S]*?\n)?[ \t]*(?P=tag)(?=\n|$)')
+HEAVY_TOOL = re.compile(r'^\s*\(?\s*(\w+=\S*\s+)*(env\s+)?(pnpm|npm|yarn|bun|bunx|npx|turbo|vitest|jest|eslint|oxlint|tsc|tsgo)\b')
+HEAVY_VERB = re.compile(r'\b(test|tests|lint|typecheck|type-check|check-types|tsc|tsgo|build|vitest|jest|eslint|oxlint)\b')
+LONG_LIVED = re.compile(r'--watch(?!=false)|\s-w\b|\b(dev|start|serve)\b')
+
+
+def is_heavy(cmd):
+    words = HEREDOC.sub('', cmd)
+    words = re.sub(r"'[^']*'", '', words)
+    words = re.sub(r'"(\\.|[^"\\])*"', '', words)
+    return any(HEAVY_TOOL.search(s) and HEAVY_VERB.search(s) and not LONG_LIVED.search(s)
+               for s in re.split(r'&&|\|\||;|\||\n', words))
+
+
+# ---------------------------------------------------------------- shared state
+
+def pid_alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        pass
+    return True
+
+
+@contextlib.contextmanager
+def state():
+    os.makedirs(ROOT, exist_ok=True)
+    with open(LOCK, 'a') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        try:
+            try:
+                with open(STATE) as f:
+                    st = json.load(f)
+            except (FileNotFoundError, ValueError):
+                st = {}
+            st.setdefault('seq', 0)
+            st.setdefault('last_start', 0)
+            st['waiting'] = [j for j in st.get('waiting', []) if pid_alive(j['pid'])]
+            st['running'] = [j for j in st.get('running', []) if pid_alive(j['pid'])]
+            yield st
+            tmp = STATE + '.tmp'
+            with open(tmp, 'w') as f:
+                json.dump(st, f)
+            os.replace(tmp, STATE)
+        finally:
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def headroom():
+    """-> (busy fraction of all cores, % memory free)."""
+    try:
+        mem = float(subprocess.run(['sysctl', '-n', 'kern.memorystatus_level'],
+                                   capture_output=True, text=True).stdout)
+    except ValueError:
+        mem = 100.0
+    out = subprocess.run(['ps', '-A', '-o', '%cpu='], capture_output=True, text=True).stdout
+    cpu = 0.0
+    for field in out.split():
+        with contextlib.suppress(ValueError):
+            cpu += float(field.replace(',', '.'))
+    return cpu / (NCPU * 100), mem
+
+
+def decide(st, job, now, sample, settle=True):
+    """Whether `job` may start now. -> (start, reason). settle=False ignores the brief pause between starts."""
+    running = st['running']
+    used = sum(j['weight'] for j in running)
+    ahead = [j for j in st['waiting'] if j['seq'] < job['seq']]
+    if running and used + job['weight'] > BUDGET:
+        return False, f'budget {used:g}/{BUDGET:g} in use'
+    if ahead and (job['weight'] > 1 or now - ahead[0]['t'] > BACKFILL):
+        return False, f'{len(ahead)} queued ahead'
+    if not running:
+        return True, 'idle'
+    if settle and now - st['last_start'] < SETTLE:
+        return False, 'previous job still ramping up'
+    if used + job['weight'] <= FLOOR:
+        return True, 'floor'
+    if not ahead and now - job['t'] > FORCE_AFTER:
+        return True, 'waited too long'
+    cpu, mem = sample()
+    if cpu > CPU_MAX:
+        return False, f'CPU {cpu:.0%} busy'
+    if mem < MEM_MIN:
+        return False, f'memory {mem:.0f}% free'
+    return True, 'headroom'
+
+
+def typical_runs():
+    """Median run time per kind, from the log tail."""
+    runs = {}
+    with contextlib.suppress(FileNotFoundError):
+        with open(LOG, 'rb') as f:
+            f.seek(0, os.SEEK_END)
+            f.seek(max(0, f.tell() - 400_000))
+            lines = f.read().decode(errors='ignore').splitlines()[1:]
+        for line in lines:
+            parts = line.split('\t')
+            if len(parts) < 7 or not parts[3].startswith('run='):
+                continue
+            with contextlib.suppress(ValueError):
+                runs.setdefault(classify(parts[6])[0], []).append(float(parts[3][4:]))
+    medians = dict(DEFAULT_RUN)
+    medians.update({k: statistics.median(v[-50:]) for k, v in runs.items() if v})
+    return medians
+
+
+def eta(st, ahead, now):
+    med = typical_runs()
+    work = sum(max(med.get(j['kind'], 60) - (now - j.get('start', now)), 5) * j['weight'] for j in st['running'])
+    work += sum(med.get(j['kind'], 60) * j['weight'] for j in ahead)
+    return work / BUDGET
+
+
+# ---------------------------------------------------------------- result cache
+
+def git(args, cwd, env=None):
+    r = subprocess.run(['git', *args], cwd=cwd, env=env, capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else None
+
+
+def cache_key(cmd, cwd):
+    """Key on (git tree incl. uncommitted and untracked files, cwd within repo, command)."""
+    top = git(['rev-parse', '--show-toplevel'], cwd)
+    if not top:
+        return None
+    for target in re.findall(r'(?:^|[\s;&|(])cd\s+([^\s;&|)]+)', cmd):
+        target = os.path.expanduser(target.strip('\'"'))
+        if os.path.isabs(target) and not (target.rstrip('/') + '/').startswith(top + '/'):
+            return None  # the command works on another repo
+    index = git(['rev-parse', '--path-format=absolute', '--git-path', 'index'], top)
+    if not index:
+        return None
+    os.makedirs(ROOT, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=ROOT, prefix='index.')
+    os.close(fd)
+    try:
+        if os.path.exists(index):
+            shutil.copyfile(index, tmp)
+        else:
+            os.unlink(tmp)
+        env = dict(os.environ, GIT_INDEX_FILE=tmp)
+        if git(['add', '-A', '--', '.'], top, env) is None:
+            return None
+        tree = git(['write-tree'], top, env)
+    finally:
+        with contextlib.suppress(FileNotFoundError):
+            os.unlink(tmp)
+    if not tree:
+        return None
+    rel = os.path.relpath(os.path.realpath(cwd), os.path.realpath(top))
+    norm = cmd.replace(top, '<root>')
+    return hashlib.sha256('\0'.join([tree, rel, norm]).encode()).hexdigest()[:32]
+
+
+def load_result(key):
+    try:
+        with open(os.path.join(RESULTS, key + '.json')) as f:
+            meta = json.load(f)
+    except (FileNotFoundError, ValueError):
+        return None
+    if time.time() - meta['t'] > CACHE_TTL:
+        return None
+    return meta
+
+
+def store_result(key, code, cmd, out_path, err_path):
+    os.makedirs(RESULTS, exist_ok=True)
+    os.replace(out_path, os.path.join(RESULTS, key + '.out'))
+    os.replace(err_path, os.path.join(RESULTS, key + '.err'))
+    tmp = os.path.join(RESULTS, key + '.json.tmp')
+    with open(tmp, 'w') as f:
+        json.dump({'code': code, 't': time.time(), 'cmd': cmd[:300]}, f)
+    os.replace(tmp, os.path.join(RESULTS, key + '.json'))
+    cutoff = time.time() - CACHE_TTL
+    for name in os.listdir(RESULTS):
+        path = os.path.join(RESULTS, name)
+        with contextlib.suppress(FileNotFoundError):
+            if os.path.getmtime(path) < cutoff:
+                os.unlink(path)
+
+
+def replay(key, meta):
+    for ext, stream in (('.out', sys.stdout.buffer), ('.err', sys.stderr.buffer)):
+        with contextlib.suppress(FileNotFoundError):
+            with open(os.path.join(RESULTS, key + ext), 'rb') as f:
+                shutil.copyfileobj(f, stream)
+        stream.flush()
+    say(f'replayed the result of an identical run {human(time.time() - meta["t"])} ago on the same '
+        f'git tree (exit {meta["code"]}). Change a file or set CPUQ_NOCACHE=1 to rerun.')
+    return meta['code']
+
+
+# ---------------------------------------------------------------- running
+
+def log(kind, weight, waited, ran, code, cmd):
+    with contextlib.suppress(OSError):
+        with open(LOG, 'a') as f:
+            f.write('%s\t%s:w%g\twait=%.1f\trun=%.1f\texit=%d\t%s\t%s\n' % (
+                time.strftime('%Y-%m-%dT%H:%M:%S'), kind, weight, waited, ran, code,
+                os.getcwd(), cmd.replace('\n', ' ')[:300]))
+
+
+def execute(argv, capture):
+    """Run at low priority, forwarding signals. capture -> (out_path, err_path) tee targets."""
+    full = ['taskpolicy', '-c', 'utility', 'nice', '-n', '10', *argv]
+    if not capture:
+        proc = subprocess.Popen(full)
+        pumps = []
+    else:
+        proc = subprocess.Popen(full, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pumps = []
+        for src, dst, path in ((proc.stdout, sys.stdout.buffer, capture[0]),
+                               (proc.stderr, sys.stderr.buffer, capture[1])):
+            def pump(src=src, dst=dst, path=path):
+                with open(path, 'wb') as sink:
+                    for chunk in iter(lambda: src.read1(65536), b''):
+                        dst.write(chunk)
+                        dst.flush()
+                        sink.write(chunk)
+            t = threading.Thread(target=pump, daemon=True)
+            t.start()
+            pumps.append(t)
+    for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
+        signal.signal(sig, lambda s, _f: proc.send_signal(s))
+    code = proc.wait()
+    for t in pumps:
+        t.join()
+    return code if code >= 0 else 128 - code
+
+
+def run(argv, nocache=False, weight=None):
+    cmd = ' '.join(argv)
+    kind, default_weight, cacheable = classify(cmd)
+    weight = default_weight if weight is None else weight
+    cwd = os.getcwd()
+    signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
+    signal.signal(signal.SIGHUP, lambda *_: sys.exit(129))
+
+    key = None
+    if cacheable and not nocache and not os.environ.get('CPUQ_NOCACHE') and not has_side_effects(cmd):
+        key = cache_key(cmd, cwd)
+    if key:
+        announced = False
+        while not load_result(key):
+            with state() as st:
+                twin = next((j for j in st['running'] + st['waiting'] if j.get('key') == key), None)
+            if not twin:
+                break
+            if not announced:
+                say(f'identical command already running on this git tree (pid {twin["pid"]}); reusing its result')
+                announced = True
+            time.sleep(2)
+        meta = load_result(key)
+        if meta:
+            code = replay(key, meta)
+            log('cache', 0, 0, 0, code, cmd)
+            return code
+
+    t0 = time.time()
+    with state() as st:
+        st['seq'] += 1
+        job = {'seq': st['seq'], 'pid': os.getpid(), 'weight': weight, 'kind': kind,
+               'cmd': cmd[:200], 'cwd': cwd, 't': t0, 'key': key}
+        st['waiting'].append(job)
+    try:
+        announced = False
+        while True:
+            with state() as st:
+                me = next(j for j in st['waiting'] if j['seq'] == job['seq'])
+                now = time.time()
+                ok, why = decide(st, me, now, headroom)
+                if ok:
+                    st['waiting'].remove(me)
+                    me['start'] = now
+                    st['running'].append(me)
+                    st['last_start'] = now
+                elif not announced:
+                    ahead = [j for j in st['waiting'] if j['seq'] < me['seq']]
+                    say(f'queued ({why}), position {len(ahead) + 1}, ~{human(eta(st, ahead, now))}. '
+                        f'`cpuq --status` shows the queue.')
+                    announced = True
+            if ok:
+                break
+            time.sleep(POLL)
+        waited = time.time() - t0
+        if announced:
+            say(f'started after {human(waited)}')
+        t1 = time.time()
+        capture = None
+        if key:
+            capture = tuple(tempfile.mkstemp(dir=ROOT, prefix='out.')[1] for _ in range(2))
+        try:
+            code = execute(argv, capture)
+            if key and code < 128:
+                store_result(key, code, cmd, *capture)
+        finally:
+            for path in capture or ():
+                with contextlib.suppress(FileNotFoundError):
+                    os.unlink(path)
+        log(kind, weight, waited, time.time() - t1, code, cmd)
+        return code
+    finally:
+        with state() as st:
+            st['waiting'] = [j for j in st['waiting'] if j['seq'] != job['seq']]
+            st['running'] = [j for j in st['running'] if j['seq'] != job['seq']]
+
+
+# ---------------------------------------------------------------- reporting and hooks
+
+def probe(cmd):
+    kind, weight, _ = classify(cmd)
+    with state() as st:
+        now = time.time()
+        job = {'seq': float('inf'), 'weight': weight, 'kind': kind, 't': now}
+        ok, why = decide(st, job, now, headroom, settle=False)
+        return {'start_now': ok, 'reason': why, 'kind': kind, 'weight': weight,
+                'queued': len(st['waiting']), 'running': len(st['running']),
+                'eta_s': 0 if ok else round(eta(st, st['waiting'], now))}
+
+
+def status():
+    cpu, mem = headroom()
+    with state() as st:
+        now = time.time()
+        used = sum(j['weight'] for j in st['running'])
+        print(f'headroom: CPU {cpu:.0%} busy (max {CPU_MAX:.0%}), memory {mem:.0f}% free (min {MEM_MIN:g}%), '
+              f'budget {used:g}/{BUDGET:g}')
+        for title, jobs, since in (('running', st['running'], 'start'), ('queued', st['waiting'], 't')):
+            print(f'{title}: {len(jobs)}')
+            for j in jobs:
+                print(f'  {j["kind"]:<11} w{j["weight"]:<2g} {human(now - j[since]):>5}  '
+                      f'{os.path.basename(j["cwd"])[:28]:<28}  {j["cmd"][:90]}')
+
+
+def hook_bash():
+    data = json.load(sys.stdin)
+    inp = data.get('tool_input') or {}
+    cmd = inp.get('command') or ''
+    if re.search(r'\bcpuq\b', cmd) or not is_heavy(cmd):
+        return
+    new = dict(inp, command=shlex.quote(SELF) + ' /bin/zsh -c ' + shlex.quote(cmd))
+    timeout = inp.get('timeout') or 0
+    out = {'hookEventName': 'PreToolUse', 'updatedInput': new}
+    p = probe(cmd)
+    if inp.get('run_in_background'):
+        new['timeout'] = max(timeout, 3600000)
+    elif p['start_now'] or p['eta_s'] < 60 or data.get('agent_id'):
+        # Short waits stay in the foreground. Subagents may not get background notifications, so they wait too.
+        new['timeout'] = max(timeout, 600000)
+    else:
+        new['run_in_background'] = True
+        new['timeout'] = max(timeout, 3600000)
+        out['additionalContext'] = (
+            f'cpuq: the machine is busy ({p["reason"]}, {p["queued"]} queued, ~{human(p["eta_s"])}), so this '
+            f'command was moved to the background and starts when resources free up. You will be notified '
+            f'when it finishes: continue other work meanwhile, and wait for that notification rather than '
+            f'polling or sleeping.')
+    print(json.dumps({'hookSpecificOutput': out}))
+
+
+def hook_agent():
+    with contextlib.suppress(ValueError):
+        json.load(sys.stdin)
+    deadline = time.time() + AGENT_WAIT
+    while True:
+        cpu, mem = headroom()
+        with state() as st:
+            backlog = sum(j['weight'] for j in st['waiting'])
+            queued = len(st['waiting'])
+        busy = []
+        if mem < MEM_MIN:
+            busy.append(f'memory {mem:.0f}% free')
+        if backlog > BUDGET:
+            busy.append(f'{queued} heavy commands queued')
+        if cpu > 0.95:
+            busy.append(f'CPU {cpu:.0%} busy')
+        if not busy or time.time() > deadline:
+            break
+        time.sleep(3)
+    if busy:
+        print(json.dumps({'hookSpecificOutput': {
+            'hookEventName': 'PreToolUse',
+            'permissionDecision': 'deny',
+            'permissionDecisionReason': (
+                f'Machine busy ({", ".join(busy)}) after waiting {human(AGENT_WAIT)}. Another agent would add '
+                f'load. Do this work inline, or spawn it later once `cpuq --status` shows the queue drained.')}}))
+
+
+def main(args):
+    if not args or args[0] in ('-h', '--help'):
+        print(__doc__.strip())
+        return 0 if args else 64
+    if args[0] == '--status':
+        status()
+        return 0
+    if args[0] == '--probe':
+        print(json.dumps(probe(' '.join(args[1:]))))
+        return 0
+    try:
+        if args[0] == '--hook-bash':
+            hook_bash()
+            return 0
+        if args[0] == '--hook-agent':
+            hook_agent()
+            return 0
+    except Exception as e:  # a broken hook must never block the tool call
+        say(f'hook error, letting the call through: {e!r}')
+        return 0
+    nocache, weight = False, None
+    while args and args[0].startswith('--'):
+        flag = args.pop(0)
+        if flag == '--':
+            break
+        if flag == '--no-cache':
+            nocache = True
+        elif flag == '--weight' and args:
+            weight = float(args.pop(0))
+        else:
+            say(f'unknown option {flag}; see cpuq --help')
+            return 64
+    if not args:
+        say('no command given')
+        return 64
+    return run(args, nocache, weight)
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv[1:]))

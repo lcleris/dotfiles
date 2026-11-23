@@ -197,6 +197,7 @@ step_link() {
   # .claude/skills holds this repo's own skills, kept out of the global ~/.claude/skills.
   restow --dir="$DOTFILES_DIR" --target="$HOME/.claude" --ignore='^skills$' .claude
   restow --dir="$DOTFILES_DIR" --target="$HOME/.codex" .codex
+  restow --dir="$DOTFILES_DIR/.local" --target="$HOME/.local/bin" bin
   success "Dotfiles linked"
 }
 
