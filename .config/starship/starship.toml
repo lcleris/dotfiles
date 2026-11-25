@@ -14,7 +14,20 @@ success_symbol = '[➜](bold green)'
 format = '[$symbol$branch(:$remote_branch)]($style) '
 
 [docker_context]
+disabled = true
+
+[gcloud]
+disabled = true
+
+[kubernetes]
 disabled = false
+symbol = "󱃾 "
+format = '[$symbol$context( \($namespace\))]($style) '
+
+# gke_<project>_<region>_<cluster> -> <cluster>
+[[kubernetes.contexts]]
+context_pattern = "gke_.*_(?P<cluster>[\\w-]+)"
+context_alias = "$cluster"
 
 [memory_usage]
 disabled = false
