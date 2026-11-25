@@ -3,6 +3,7 @@ server:
   host: "127.0.0.1" # keep: tailscale serve fronts it
   port: 8317
   trusted-proxies: ["127.0.0.1", "::1"]
+  server-id: a4582ed7-e485-4c3c-b73e-960b2feaea5d
 management:
   allow-remote: false
   secret-key: "__CLIPROXY_MANAGEMENT_KEY__"
